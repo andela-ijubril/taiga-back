@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -23,27 +24,18 @@ from taiga.base.decorators import detail_route
 
 from taiga.projects.likes import serializers
 from taiga.projects.likes import services
-from taiga.projects.likes.utils import attach_total_fans_to_queryset, attach_is_fan_to_queryset
 
 
 class LikedResourceMixin:
-    # Note: Update get_queryset method:
-    #           def get_queryset(self):
-    #               qs = super().get_queryset()
-    #               return self.attach_likes_attrs_to_queryset(qs)
-
-    def attach_likes_attrs_to_queryset(self, queryset):
-        qs = attach_total_fans_to_queryset(queryset)
-
-        if self.request.user.is_authenticated():
-            qs = attach_is_fan_to_queryset(self.request.user, qs)
-
-        return qs
-
+    """
+    NOTE:the classes using this mixing must have a method:
+    def pre_conditions_on_save(self, obj)
+    """
     @detail_route(methods=["POST"])
     def like(self, request, pk=None):
         obj = self.get_object()
         self.check_permissions(request, "like", obj)
+        self.pre_conditions_on_save(obj)
 
         services.add_like(obj, user=request.user)
         return response.Ok()
@@ -52,6 +44,7 @@ class LikedResourceMixin:
     def unlike(self, request, pk=None):
         obj = self.get_object()
         self.check_permissions(request, "unlike", obj)
+        self.pre_conditions_on_save(obj)
 
         services.remove_like(obj, user=request.user)
         return response.Ok()

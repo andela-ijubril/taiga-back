@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -28,6 +29,7 @@ from taiga.base import exceptions as exc
 from taiga.base import response
 from taiga.base import status
 from taiga.base.decorators import list_route
+from taiga.base.api.mixins import BlockedByProjectMixin
 from taiga.base.api import ModelCrudViewSet, ModelListViewSet
 from taiga.base.api.utils import get_object_or_404
 
@@ -45,7 +47,7 @@ from . import services
 
 
 class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, WatchedResourceMixin,
-                       ModelCrudViewSet):
+                       BlockedByProjectMixin, ModelCrudViewSet):
     queryset = models.UserStory.objects.all()
     permission_classes = (permissions.UserStoryPermission,)
     filter_backends = (filters.CanViewUsFilterBackend,
@@ -116,7 +118,12 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
         qs = qs.prefetch_related("role_points",
                                  "role_points__points",
                                  "role_points__role")
-        qs = qs.select_related("milestone", "project")
+        qs = qs.select_related("milestone",
+                               "project",
+                               "status",
+                               "owner",
+                               "assigned_to",
+                               "generated_from_issue")
         qs = self.attach_votes_attrs_to_queryset(qs)
         return self.attach_watchers_attrs_to_queryset(qs)
 
@@ -207,6 +214,9 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
             data = serializer.data
             project = Project.objects.get(id=data["project_id"])
             self.check_permissions(request, 'bulk_create', project)
+            if project.blocked_code is not None:
+                raise exc.Blocked(_("Blocked element"))
+
             user_stories = services.create_userstories_in_bulk(
                 data["bulk_stories"], project=project, owner=request.user,
                 status_id=data.get("status_id") or project.default_us_status_id,
@@ -224,6 +234,9 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
         project = get_object_or_404(Project, pk=data["project_id"])
 
         self.check_permissions(request, "bulk_update_order", project)
+        if project.blocked_code is not None:
+            raise exc.Blocked(_("Blocked element"))
+
         services.update_userstories_order_in_bulk(data["bulk_stories"],
                                                   project=project,
                                                   field=order_field)

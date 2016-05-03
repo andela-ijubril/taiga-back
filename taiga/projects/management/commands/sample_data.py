@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -16,6 +17,8 @@
 
 import random
 import datetime
+from os import path
+
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -27,21 +30,23 @@ from sampledatahelper.helper import SampleDataHelper
 
 from taiga.users.models import *
 from taiga.permissions.permissions import ANON_PERMISSIONS
+from taiga.projects.choices import BLOCKED_BY_STAFF
 from taiga.projects.models import *
 from taiga.projects.milestones.models import *
 from taiga.projects.notifications.choices import NotifyLevel
-
+from taiga.projects.services.stats import get_stats_for_project
 from taiga.projects.userstories.models import *
 from taiga.projects.tasks.models import *
 from taiga.projects.issues.models import *
 from taiga.projects.wiki.models import *
 from taiga.projects.attachments.models import *
 from taiga.projects.custom_attributes.models import *
-from taiga.projects.custom_attributes.choices import TYPES_CHOICES, TEXT_TYPE, MULTILINE_TYPE, DATE_TYPE
+from taiga.projects.custom_attributes.choices import TYPES_CHOICES, TEXT_TYPE, MULTILINE_TYPE, DATE_TYPE, URL_TYPE
 from taiga.projects.history.services import take_snapshot
 from taiga.projects.likes.services import add_like
 from taiga.projects.votes.services import add_vote
 from taiga.events.apps import disconnect_events_signals
+from taiga.projects.services.stats import get_stats_for_project
 
 
 ATTACHMENT_SAMPLE_DATA = [
@@ -89,11 +94,18 @@ SUBJECT_CHOICES = [
     "Support for bulk actions",
     "Migrate to Python 3 and milk a beautiful cow"]
 
+URL_CHOICES = [
+    "https://taiga.io",
+    "https://blog.taiga.io",
+    "https://tree.taiga.io",
+    "https://tribe.taiga.io"]
+
 BASE_USERS = getattr(settings, "SAMPLE_DATA_BASE_USERS", {})
 NUM_USERS = getattr(settings, "SAMPLE_DATA_NUM_USERS", 10)
 NUM_INVITATIONS =getattr(settings, "SAMPLE_DATA_NUM_INVITATIONS",  2)
 NUM_PROJECTS =getattr(settings, "SAMPLE_DATA_NUM_PROJECTS",  4)
 NUM_EMPTY_PROJECTS = getattr(settings, "SAMPLE_DATA_NUM_EMPTY_PROJECTS", 2)
+NUM_BLOCKED_PROJECTS = getattr(settings, "SAMPLE_DATA_NUM_BLOCKED_PROJECTS", 1)
 NUM_MILESTONES = getattr(settings, "SAMPLE_DATA_NUM_MILESTONES", (1, 5))
 NUM_USS = getattr(settings, "SAMPLE_DATA_NUM_USS", (3, 7))
 NUM_TASKS_FINISHED = getattr(settings, "SAMPLE_DATA_NUM_TASKS_FINISHED", (1, 5))
@@ -104,6 +116,9 @@ NUM_ATTACHMENTS = getattr(settings, "SAMPLE_DATA_NUM_ATTACHMENTS", (0, 4))
 NUM_LIKES = getattr(settings, "SAMPLE_DATA_NUM_LIKES", (0, 10))
 NUM_VOTES = getattr(settings, "SAMPLE_DATA_NUM_VOTES", (0, 10))
 NUM_WATCHERS = getattr(settings, "SAMPLE_DATA_NUM_PROJECT_WATCHERS", (0, 8))
+FEATURED_PROJECTS_POSITIONS = [0, 1, 2]
+LOOKING_FOR_PEOPLE_PROJECTS_POSITIONS = [0, 1, 2]
+
 
 class Command(BaseCommand):
     sd = SampleDataHelper(seed=12345678901)
@@ -124,8 +139,19 @@ class Command(BaseCommand):
                 self.users.append(self.create_user(counter=x))
 
         # create project
-        for x in range(NUM_PROJECTS + NUM_EMPTY_PROJECTS):
-            project = self.create_project(x, is_private=(x in [2, 4] or self.sd.boolean()))
+        projects_range = range(NUM_PROJECTS + NUM_EMPTY_PROJECTS + NUM_BLOCKED_PROJECTS)
+        empty_projects_range = range(NUM_PROJECTS, NUM_PROJECTS + NUM_EMPTY_PROJECTS )
+        blocked_projects_range = range(
+            NUM_PROJECTS + NUM_EMPTY_PROJECTS,
+            NUM_PROJECTS + NUM_EMPTY_PROJECTS + NUM_BLOCKED_PROJECTS
+        )
+
+        for x in projects_range:
+            project = self.create_project(
+                x,
+                is_private=(x in [2, 4] or self.sd.boolean()),
+                blocked_code = BLOCKED_BY_STAFF if x in(blocked_projects_range) else None
+            )
 
             # added memberships
             computable_project_roles = set()
@@ -138,7 +164,7 @@ class Command(BaseCommand):
                 Membership.objects.create(email=user.email,
                                           project=project,
                                           role=role,
-                                          is_owner=self.sd.boolean(),
+                                          is_admin=self.sd.boolean(),
                                           user=user)
 
                 if role.computable:
@@ -151,7 +177,7 @@ class Command(BaseCommand):
                 Membership.objects.create(email=self.sd.email(),
                                           project=project,
                                           role=role,
-                                          is_owner=self.sd.boolean(),
+                                          is_admin=self.sd.boolean(),
                                           token=''.join(random.sample('abcdef0123456789', 10)))
 
                 if role.computable:
@@ -180,8 +206,8 @@ class Command(BaseCommand):
                                                         project=project,
                                                         order=i)
 
-
-            if x < NUM_PROJECTS:
+            # If the project isn't empty
+            if x not in empty_projects_range:
                 start_date = now() - datetime.timedelta(55)
 
                 # create milestones
@@ -220,11 +246,13 @@ class Command(BaseCommand):
                 wiki_page = self.create_wiki(project, "home")
 
             # Set a value to total_story_points to show the deadline in the backlog
-            defined_points = sum(project.defined_points.values())
+            project_stats = get_stats_for_project(project)
+            defined_points = project_stats["defined_points"]
             project.total_story_points = int(defined_points * self.sd.int(5,12) / 10)
             project.save()
 
             self.create_likes(project)
+
 
     def create_attachment(self, obj, order):
         attached_file = self.sd.file_from_directory(*ATTACHMENT_SAMPLE_DATA)
@@ -271,6 +299,8 @@ class Command(BaseCommand):
             return self.sd.paragraphs(2, 4)
         if type == DATE_TYPE:
             return self.sd.future_date(min_distance=0, max_distance=365)
+        if type == URL_TYPE:
+            return self.sd.choice(URL_CHOICES)
         return None
 
     def create_bug(self, project):
@@ -439,7 +469,7 @@ class Command(BaseCommand):
 
         return milestone
 
-    def create_project(self, counter, is_private=None):
+    def create_project(self, counter, is_private=None, blocked_code=None):
         if is_private is None:
             is_private=self.sd.boolean()
 
@@ -454,7 +484,11 @@ class Command(BaseCommand):
                                          public_permissions=public_permissions,
                                          total_story_points=self.sd.int(600, 3000),
                                          total_milestones=self.sd.int(5,10),
-                                         tags=self.sd.words(1, 10).split(" "))
+                                         tags=self.sd.words(1, 10).split(" "),
+                                         is_looking_for_people=counter in LOOKING_FOR_PEOPLE_PROJECTS_POSITIONS,
+                                         looking_for_people_note=self.sd.short_sentence(),
+                                         is_featured=counter in FEATURED_PROJECTS_POSITIONS,
+                                         blocked_code=blocked_code)
 
         project.is_kanban_activated = True
         project.save()
@@ -499,4 +533,3 @@ class Command(BaseCommand):
                 obj.add_watcher(user)
             else:
                 obj.add_watcher(user, notify_level)
-

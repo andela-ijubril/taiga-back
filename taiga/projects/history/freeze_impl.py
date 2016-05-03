@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -18,16 +19,15 @@ from contextlib import suppress
 
 from functools import partial
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 
-from easy_thumbnails.files import get_thumbnailer
-from easy_thumbnails.exceptions import InvalidImageFormatError
-
-from taiga.base.utils.urls import get_absolute_url
 from taiga.base.utils.iterators import as_tuple
 from taiga.base.utils.iterators import as_dict
 from taiga.mdrender.service import render as mdrender
+
+from taiga.projects.attachments.services import get_timeline_image_thumbnail_url
 
 import os
 
@@ -49,7 +49,7 @@ def _get_generic_values(ids:tuple, *, typename=None, attr:str="name") -> tuple:
 
 @as_dict
 def _get_users_values(ids:set) -> dict:
-    user_model = apps.get_model("users", "User")
+    user_model = get_user_model()
     ids = filter(lambda x: x is not None, ids)
     qs = user_model.objects.filter(pk__in=tuple(ids))
 
@@ -178,11 +178,7 @@ def _generic_extract(obj:object, fields:list, default=None) -> dict:
 @as_tuple
 def extract_attachments(obj) -> list:
     for attach in obj.attachments.all():
-        try:
-            thumb_url = get_thumbnailer(attach.attached_file)['timeline-image'].url
-            thumb_url = get_absolute_url(thumb_url)
-        except InvalidImageFormatError as e:
-            thumb_url = None
+        thumb_url = get_timeline_image_thumbnail_url(attach)
 
         yield {"id": attach.id,
                "filename": os.path.basename(attach.attached_file.name),
@@ -270,7 +266,7 @@ def userstory_freezer(us) -> dict:
     snapshot = {
         "ref": us.ref,
         "owner": us.owner_id,
-        "status": us.status_id,
+        "status": us.status.id if us.status else None,
         "is_closed": us.is_closed,
         "finish_date": str(us.finish_date),
         "backlog_order": us.backlog_order,
@@ -291,6 +287,7 @@ def userstory_freezer(us) -> dict:
         "blocked_note": us.blocked_note,
         "blocked_note_html": mdrender(us.project, us.blocked_note),
         "custom_attributes": extract_user_story_custom_attributes(us),
+        "tribe_gig": us.tribe_gig,
     }
 
     return snapshot
@@ -300,7 +297,7 @@ def issue_freezer(issue) -> dict:
     snapshot = {
         "ref": issue.ref,
         "owner": issue.owner_id,
-        "status": issue.status_id,
+        "status": issue.status.id if issue.status else None,
         "priority": issue.priority_id,
         "severity": issue.severity_id,
         "type": issue.type_id,
@@ -324,7 +321,7 @@ def task_freezer(task) -> dict:
     snapshot = {
         "ref": task.ref,
         "owner": task.owner_id,
-        "status": task.status_id,
+        "status": task.status.id if task.status else None,
         "milestone": task.milestone_id,
         "subject": task.subject,
         "description": task.description,

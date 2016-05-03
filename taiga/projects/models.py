@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -17,7 +18,7 @@
 import itertools
 import uuid
 
-
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import signals, Q
@@ -27,16 +28,19 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 from django_pgjson.fields import JsonField
 from djorm_pgarray.fields import TextArrayField
-from taiga.permissions.permissions import ANON_PERMISSIONS, MEMBERS_PERMISSIONS
 
 from taiga.base.tags import TaggedMixin
-from taiga.base.utils.slug import slugify_uniquely
 from taiga.base.utils.dicts import dict_sum
+from taiga.base.utils.files import get_file_path
 from taiga.base.utils.sequence import arithmetic_progression
+from taiga.base.utils.slug import slugify_uniquely
 from taiga.base.utils.slug import slugify_uniquely_for_queryset
+
+from taiga.permissions.permissions import ANON_PERMISSIONS, MEMBERS_PERMISSIONS
 
 from taiga.projects.notifications.choices import NotifyLevel
 from taiga.projects.notifications.services import (
@@ -45,7 +49,15 @@ from taiga.projects.notifications.services import (
     set_notify_policy_level_to_ignore,
     create_notify_policy_if_not_exists)
 
+from taiga.timeline.service import build_project_namespace
+
 from . import choices
+
+from dateutil.relativedelta import relativedelta
+
+
+def get_project_logo_file_path(instance, filename):
+    return get_file_path(instance, filename, "project")
 
 
 class Membership(models.Model):
@@ -59,7 +71,7 @@ class Membership(models.Model):
                                 related_name="memberships")
     role = models.ForeignKey("users.Role", null=False, blank=False,
                              related_name="memberships")
-    is_owner = models.BooleanField(default=False, null=False, blank=False)
+    is_admin = models.BooleanField(default=False, null=False, blank=False)
 
     # Invitation metadata
     email = models.EmailField(max_length=255, default=None, null=True, blank=True,
@@ -136,6 +148,11 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
                             verbose_name=_("slug"))
     description = models.TextField(null=False, blank=False,
                                    verbose_name=_("description"))
+
+    logo = models.FileField(upload_to=get_project_logo_file_path,
+                             max_length=500, null=True, blank=True,
+                             verbose_name=_("logo"))
+
     created_date = models.DateTimeField(null=False, blank=False,
                                         verbose_name=_("created date"),
                                         default=timezone.now)
@@ -168,6 +185,7 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
                                           related_name="projects", null=True,
                                           blank=True, default=None,
                                           verbose_name=_("creation template"))
+
     anon_permissions = TextArrayField(blank=True, null=True,
                                       default=[],
                                       verbose_name=_("anonymous permissions"),
@@ -179,6 +197,14 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
     is_private = models.BooleanField(default=True, null=False, blank=True,
                                      verbose_name=_("is private"))
 
+    is_featured = models.BooleanField(default=False, null=False, blank=True,
+                                     verbose_name=_("is featured"))
+
+    is_looking_for_people = models.BooleanField(default=False, null=False, blank=True,
+                                     verbose_name=_("is looking for people"))
+    looking_for_people_note = models.TextField(default="", null=False, blank=True,
+                                               verbose_name=_("loking for people note"))
+
     userstories_csv_uuid = models.CharField(max_length=32, editable=False,
                                             null=True, blank=True,
                                             default=None, db_index=True)
@@ -188,13 +214,54 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
                                        null=True, blank=True, default=None,
                                        db_index=True)
 
-    tags_colors = TextArrayField(dimension=2, null=False, blank=True, verbose_name=_("tags colors"), default=[])
+    tags_colors = TextArrayField(dimension=2, default=[], null=False, blank=True,
+                                 verbose_name=_("tags colors"))
+
+    transfer_token = models.CharField(max_length=255, null=True, blank=True, default=None,
+                                      verbose_name=_("project transfer token"))
+
+    blocked_code = models.CharField(null=True, blank=True, max_length=255,
+                            choices=choices.BLOCKING_CODES + settings.EXTRA_BLOCKING_CODES, default=None,
+                            verbose_name=_("blocked code"))
+
+    #Totals:
+    totals_updated_datetime = models.DateTimeField(null=False, blank=False, auto_now_add=True,
+                                            verbose_name=_("updated date time"), db_index=True)
+
+    total_fans = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                             verbose_name=_("count"), db_index=True)
+
+    total_fans_last_week = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                             verbose_name=_("fans last week"), db_index=True)
+
+    total_fans_last_month = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                              verbose_name=_("fans last month"), db_index=True)
+
+    total_fans_last_year = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                             verbose_name=_("fans last year"), db_index=True)
+
+    total_activity = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                                 verbose_name=_("count"), db_index=True)
+
+    total_activity_last_week = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                             verbose_name=_("activity last week"), db_index=True)
+
+    total_activity_last_month = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                              verbose_name=_("activity last month"), db_index=True)
+
+    total_activity_last_year = models.PositiveIntegerField(null=False, blank=False, default=0,
+                                             verbose_name=_("activity last year"), db_index=True)
+
     _importing = None
 
     class Meta:
         verbose_name = "project"
         verbose_name_plural = "projects"
-        ordering = ["name"]
+        ordering = ["name", "id"]
+        index_together = [
+            ["name", "id"],
+        ]
+
         permissions = (
             ("view_project", "Can view project"),
         )
@@ -219,10 +286,64 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
                 slug = "{}-{}".format(base_slug, i)
             self.slug = slug
 
+        if not self.is_backlog_activated:
+            self.total_milestones = None
+            self.total_story_points = None
+
         if not self.videoconferences:
             self.videoconferences_extra_data = None
 
+        if not self.is_looking_for_people:
+            self.looking_for_people_note = ""
+
+        if self.anon_permissions == None:
+            self.anon_permissions = []
+
+        if self.public_permissions == None:
+            self.public_permissions = []
+
         super().save(*args, **kwargs)
+
+    def refresh_totals(self, save=True):
+        now = timezone.now()
+        self.totals_updated_datetime = now
+
+        Like = apps.get_model("likes", "Like")
+        content_type = apps.get_model("contenttypes", "ContentType").objects.get_for_model(Project)
+        qs = Like.objects.filter(content_type=content_type, object_id=self.id)
+
+        self.total_fans = qs.count()
+
+        qs_week = qs.filter(created_date__gte=now-relativedelta(weeks=1))
+        self.total_fans_last_week = qs_week.count()
+
+        qs_month = qs.filter(created_date__gte=now-relativedelta(months=1))
+        self.total_fans_last_month = qs_month.count()
+
+        qs_year = qs.filter(created_date__gte=now-relativedelta(years=1))
+        self.total_fans_last_year = qs_year.count()
+
+        tl_model = apps.get_model("timeline", "Timeline")
+        namespace = build_project_namespace(self)
+
+        qs = tl_model.objects.filter(namespace=namespace)
+        self.total_activity = qs.count()
+
+        qs_week = qs.filter(created__gte=now-relativedelta(weeks=1))
+        self.total_activity_last_week = qs_week.count()
+
+        qs_month = qs.filter(created__gte=now-relativedelta(months=1))
+        self.total_activity_last_month = qs_month.count()
+
+        qs_year = qs.filter(created__gte=now-relativedelta(years=1))
+        self.total_activity_last_year = qs_year.count()
+
+        if save:
+            self.save()
+
+    @cached_property
+    def cached_user_stories(self):
+        return list(self.user_stories.all())
 
     def get_roles(self):
         return self.roles.all()
@@ -271,77 +392,9 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
         rp_query = rp_query.exclude(role__id__in=roles.values_list("id", flat=True))
         rp_query.delete()
 
-    def _get_user_stories_points(self, user_stories):
-        role_points = [us.role_points.all() for us in user_stories]
-        flat_role_points = itertools.chain(*role_points)
-        flat_role_dicts = map(lambda x: {x.role_id: x.points.value if x.points.value else 0},
-                              flat_role_points)
-        return dict_sum(*flat_role_dicts)
-
-    def _get_points_increment(self, client_requirement, team_requirement):
-        last_milestones = self.milestones.order_by('-estimated_finish')
-        last_milestone = last_milestones[0] if last_milestones else None
-        if last_milestone:
-            user_stories = self.user_stories.filter(
-                created_date__gte=last_milestone.estimated_finish,
-                client_requirement=client_requirement,
-                team_requirement=team_requirement
-            )
-        else:
-            user_stories = self.user_stories.filter(
-                client_requirement=client_requirement,
-                team_requirement=team_requirement
-            )
-        user_stories = user_stories.prefetch_related('role_points', 'role_points__points')
-        return self._get_user_stories_points(user_stories)
-
-
     @property
     def project(self):
         return self
-
-    @property
-    def project(self):
-        return self
-
-    @property
-    def future_team_increment(self):
-        team_increment = self._get_points_increment(False, True)
-        shared_increment = {key: value / 2 for key, value in self.future_shared_increment.items()}
-        return dict_sum(team_increment, shared_increment)
-
-    @property
-    def future_client_increment(self):
-        client_increment = self._get_points_increment(True, False)
-        shared_increment = {key: value / 2 for key, value in self.future_shared_increment.items()}
-        return dict_sum(client_increment, shared_increment)
-
-    @property
-    def future_shared_increment(self):
-        return self._get_points_increment(True, True)
-
-    @property
-    def closed_points(self):
-        return self.calculated_points["closed"]
-
-    @property
-    def defined_points(self):
-        return self.calculated_points["defined"]
-
-    @property
-    def assigned_points(self):
-        return self.calculated_points["assigned"]
-
-    @property
-    def calculated_points(self):
-        user_stories = self.user_stories.all().prefetch_related('role_points', 'role_points__points')
-        closed_user_stories = user_stories.filter(is_closed=True)
-        assigned_user_stories = user_stories.filter(milestone__isnull=False)
-        return {
-            "defined": self._get_user_stories_points(user_stories),
-            "closed": self._get_user_stories_points(closed_user_stories),
-            "assigned": self._get_user_stories_points(assigned_user_stories),
-        }
 
     def _get_q_watchers(self):
         return Q(notify_policies__project_id=self.id) & ~Q(notify_policies__notify_level=NotifyLevel.none)
@@ -375,6 +428,37 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
     def remove_watcher(self, user):
         notify_policy = get_notify_policy(self, user)
         set_notify_policy_level_to_ignore(notify_policy)
+
+    def delete_related_content(self):
+        from taiga.events.apps import (connect_events_signals,
+                                       disconnect_events_signals)
+        from taiga.projects.tasks.apps import (connect_all_tasks_signals,
+                                               disconnect_all_tasks_signals)
+        from taiga.projects.userstories.apps import (connect_all_userstories_signals,
+                                                     disconnect_all_userstories_signals)
+        from taiga.projects.issues.apps import (connect_all_issues_signals,
+                                                disconnect_all_issues_signals)
+        from taiga.projects.apps import (connect_memberships_signals,
+                                         disconnect_memberships_signals)
+
+        disconnect_events_signals()
+        disconnect_all_issues_signals()
+        disconnect_all_tasks_signals()
+        disconnect_all_userstories_signals()
+        disconnect_memberships_signals()
+
+        try:
+            self.tasks.all().delete()
+            self.user_stories.all().delete()
+            self.issues.all().delete()
+            self.memberships.all().delete()
+            self.roles.all().delete()
+        finally:
+            connect_events_signals()
+            connect_all_issues_signals()
+            connect_all_tasks_signals()
+            connect_all_userstories_signals()
+            connect_memberships_signals()
 
 
 class ProjectModulesConfig(models.Model):

@@ -1,7 +1,8 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Anler Hernández <hello@anler.me>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Anler Hernández <hello@anler.me>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -151,7 +152,7 @@ def test_params_validation_in_api_request(client, refmodels):
     project = factories.ProjectFactory.create(owner=user)
     seqname1 = refmodels.make_sequence_name(project)
     role = factories.RoleFactory.create(project=project)
-    factories.MembershipFactory.create(project=project, user=user, role=role, is_owner=True)
+    factories.MembershipFactory.create(project=project, user=user, role=role, is_admin=True)
 
     milestone = factories.MilestoneFactory.create(project=project)
     us = factories.UserStoryFactory.create(project=project)

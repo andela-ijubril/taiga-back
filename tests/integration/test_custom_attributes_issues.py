@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -33,7 +34,7 @@ def test_issue_custom_attribute_duplicate_name_error_on_create(client):
     custom_attr_1 = f.IssueCustomAttributeFactory()
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
 
     url = reverse("issue-custom-attributes-list")
@@ -50,7 +51,7 @@ def test_issue_custom_attribute_duplicate_name_error_on_update(client):
     custom_attr_2 = f.IssueCustomAttributeFactory(project=custom_attr_1.project)
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
 
     url = reverse("issue-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
@@ -66,10 +67,10 @@ def test_issue_custom_attribute_duplicate_name_error_on_move_between_projects(cl
     custom_attr_2 = f.IssueCustomAttributeFactory(name=custom_attr_1.name)
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
-                                 is_owner=True)
+                                 is_admin=True)
     f.MembershipFactory(user=custom_attr_1.project.owner,
                         project=custom_attr_2.project,
-                        is_owner=True)
+                        is_admin=True)
 
 
     url = reverse("issue-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
@@ -93,7 +94,7 @@ def test_issue_custom_attributes_values_update(client):
     issue = f.IssueFactory()
     member = f.MembershipFactory(user=issue.project.owner,
                                  project=issue.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
     custom_attr_1 = f.IssueCustomAttributeFactory(project=issue.project)
     ct1_id = "{}".format(custom_attr_1.id)
@@ -125,7 +126,7 @@ def test_issue_custom_attributes_values_update_with_error_invalid_key(client):
     issue = f.IssueFactory()
     member = f.MembershipFactory(user=issue.project.owner,
                                  project=issue.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
     custom_attr_1 = f.IssueCustomAttributeFactory(project=issue.project)
     ct1_id = "{}".format(custom_attr_1.id)
@@ -150,7 +151,7 @@ def test_issue_custom_attributes_values_delete_issue(client):
     issue = f.IssueFactory()
     member = f.MembershipFactory(user=issue.project.owner,
                                  project=issue.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
     custom_attr_1 = f.IssueCustomAttributeFactory(project=issue.project)
     ct1_id = "{}".format(custom_attr_1.id)
@@ -176,7 +177,7 @@ def test_trigger_update_issuecustomvalues_afeter_remove_issuecustomattribute(cli
     issue = f.IssueFactory()
     member = f.MembershipFactory(user=issue.project.owner,
                                  project=issue.project,
-                                 is_owner=True)
+                                 is_admin=True)
     custom_attr_1 = f.IssueCustomAttributeFactory(project=issue.project)
     ct1_id = "{}".format(custom_attr_1.id)
     custom_attr_2 = f.IssueCustomAttributeFactory(project=issue.project)

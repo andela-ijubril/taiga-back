@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -16,10 +17,10 @@
 
 import uuid
 
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from taiga.users.models import User
 from taiga.base.utils.urls import get_absolute_url
 
 
@@ -46,11 +47,11 @@ def get_gitlab_user(user_email):
 
     if user_email:
         try:
-            user = User.objects.get(email=user_email)
-        except User.DoesNotExist:
+            user = get_user_model().objects.get(email=user_email)
+        except get_user_model().DoesNotExist:
             pass
 
     if user is None:
-        user = User.objects.get(is_system=True, username__startswith="gitlab")
+        user = get_user_model().objects.get(is_system=True, username__startswith="gitlab")
 
     return user

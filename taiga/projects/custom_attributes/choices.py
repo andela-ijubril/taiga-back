@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -20,9 +21,11 @@ from django.utils.translation import ugettext_lazy as _
 TEXT_TYPE = "text"
 MULTILINE_TYPE = "multiline"
 DATE_TYPE = "date"
+URL_TYPE = "url"
 
 TYPES_CHOICES = (
     (TEXT_TYPE, _("Text")),
     (MULTILINE_TYPE, _("Multi-Line Text")),
-    (DATE_TYPE, _("Date"))
+    (DATE_TYPE, _("Date")),
+    (URL_TYPE, _("Url"))
 )

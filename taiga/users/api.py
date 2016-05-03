@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -30,12 +31,13 @@ from taiga.auth.tokens import get_user_for_token
 from taiga.base.decorators import list_route
 from taiga.base.decorators import detail_route
 from taiga.base.api import ModelCrudViewSet
+from taiga.base.api.mixins import BlockedByProjectMixin
 from taiga.base.filters import PermissionBasedFilterBackend
 from taiga.base.api.utils import get_object_or_404
 from taiga.base.filters import MembersFilterBackend
 from taiga.base.mails import mail_builder
 from taiga.projects.votes import services as votes_service
-
+from taiga.users.services import get_user_by_username_or_email
 from easy_thumbnails.source_generators import pil_image
 
 from . import models
@@ -145,13 +147,7 @@ class UsersViewSet(ModelCrudViewSet):
         if not username_or_email:
             raise exc.WrongArguments(_("Invalid username or email"))
 
-        try:
-            queryset = models.User.objects.all()
-            user = queryset.get(Q(username=username_or_email) |
-                                    Q(email=username_or_email))
-        except models.User.DoesNotExist:
-            raise exc.WrongArguments(_("Invalid username or email"))
-
+        user = get_user_by_username_or_email(username_or_email)
         user.token = str(uuid.uuid1())
         user.save(update_fields=["token"])
 
@@ -228,7 +224,6 @@ class UsersViewSet(ModelCrudViewSet):
         except Exception:
             raise exc.WrongArguments(_("Invalid image format"))
 
-        request.user.delete_photo()
         request.user.photo = avatar
         request.user.save(update_fields=["photo"])
         user_data = self.admin_serializer_class(request.user).data
@@ -241,7 +236,7 @@ class UsersViewSet(ModelCrudViewSet):
         Remove the avatar of current logged user.
         """
         self.check_permissions(request, "remove_avatar", None)
-        request.user.delete_photo()
+        request.user.photo = None
         request.user.save(update_fields=["photo"])
         user_data = self.admin_serializer_class(request.user).data
         return response.Ok(user_data)
@@ -409,7 +404,7 @@ class UsersViewSet(ModelCrudViewSet):
 ## Role
 ######################################################
 
-class RolesViewSet(ModelCrudViewSet):
+class RolesViewSet(BlockedByProjectMixin, ModelCrudViewSet):
     model = models.Role
     serializer_class = serializers.RoleSerializer
     permission_classes = (permissions.RolesPermission, )

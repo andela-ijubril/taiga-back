@@ -1,5 +1,6 @@
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Taiga Agile LLC <support@taiga.io>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Taiga Agile LLC <support@taiga.io>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -15,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.apps import apps
+from django.contrib.auth import get_user_model
 
 from taiga.front.templatetags.functions import resolve
 
@@ -23,7 +25,7 @@ from .base import Sitemap
 
 class UsersSitemap(Sitemap):
     def items(self):
-        user_model = apps.get_model("users", "User")
+        user_model = get_user_model()
 
         # Only active users and not system users
         queryset = user_model.objects.filter(is_active=True,

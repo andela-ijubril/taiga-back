@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -14,11 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from django.apps import apps
 from django.db import models
+from django.db.models import Prefetch, Count
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.utils.functional import cached_property
 
 from taiga.base.utils.slug import slugify_uniquely
 from taiga.base.utils.dicts import dict_sum
@@ -53,6 +57,7 @@ class Milestone(WatchedModelMixin, models.Model):
     order = models.PositiveSmallIntegerField(default=1, null=False, blank=False,
                                              verbose_name=_("order"))
     _importing = None
+    _total_closed_points_by_date = None
 
     class Meta:
         verbose_name = "milestone"
@@ -82,6 +87,11 @@ class Milestone(WatchedModelMixin, models.Model):
 
         super().save(*args, **kwargs)
 
+    @cached_property
+    def cached_user_stories(self):
+        return (self.user_stories.prefetch_related("role_points", "role_points__points")
+                                 .annotate(num_tasks=Count("tasks")))
+
     def _get_user_stories_points(self, user_stories):
         role_points = [us.role_points.all() for us in user_stories]
         flat_role_points = itertools.chain(*role_points)
@@ -91,66 +101,60 @@ class Milestone(WatchedModelMixin, models.Model):
     @property
     def total_points(self):
         return self._get_user_stories_points(
-            [us for us in self.user_stories.all()]
+            [us for us in self.cached_user_stories]
         )
 
     @property
     def closed_points(self):
         return self._get_user_stories_points(
-            [us for us in self.user_stories.all() if us.is_closed]
+            [us for us in self.cached_user_stories if us.is_closed]
         )
 
-    def _get_increment_points(self):
-        if hasattr(self, "_increments"):
-            return self._increments
+    def total_closed_points_by_date(self, date):
+        # Milestone instance will keep a cache of the total closed points by date
+        if self._total_closed_points_by_date is None:
+            self._total_closed_points_by_date = {}
 
-        self._increments = {
-            "client_increment": {},
-            "team_increment": {},
-            "shared_increment": {},
-        }
-        user_stories = UserStory.objects.none()
-        if self.estimated_start and self.estimated_finish:
-            user_stories = filter(
-                lambda x: x.created_date.date() >= self.estimated_start and x.created_date.date() < self.estimated_finish,
-                self.project.user_stories.all()
-            )
-            self._increments['client_increment'] = self._get_user_stories_points(
-                [us for us in user_stories if us.client_requirement is True and us.team_requirement is False]
-            )
-            self._increments['team_increment'] = self._get_user_stories_points(
-                [us for us in user_stories if us.client_requirement is False and us.team_requirement is True]
-            )
-            self._increments['shared_increment'] = self._get_user_stories_points(
-                [us for us in user_stories if us.client_requirement is True and us.team_requirement is True]
-            )
-        return self._increments
+            # We need to keep the milestone user stories indexed by id in a dict
+            user_stories = {}
+            for us in self.cached_user_stories:
+                us._total_us_points = sum(self._get_user_stories_points([us]).values())
+                user_stories[us.id] = us
 
+            tasks = self.tasks.\
+                    select_related("user_story").\
+                    exclude(finished_date__isnull=True).\
+                    exclude(user_story__isnull=True)
 
-    @property
-    def client_increment_points(self):
-        self._get_increment_points()
-        client_increment = self._get_increment_points()["client_increment"]
-        shared_increment = {
-            key: value/2 for key, value in self._get_increment_points()["shared_increment"].items()
-        }
-        return dict_sum(client_increment, shared_increment)
+            # For each finished task we try to know the proporional part of points
+            # it represetnts from the user story and add it to the closed points
+            # for that date
+            # This calulation is the total user story points divided by its number of tasks
+            for task in tasks:
+                user_story = user_stories[task.user_story.id]
+                total_us_points = user_story._total_us_points
+                us_tasks_counter = user_story.num_tasks
 
-    @property
-    def team_increment_points(self):
-        team_increment = self._get_increment_points()["team_increment"]
-        shared_increment = {
-            key: value/2 for key, value in self._get_increment_points()["shared_increment"].items()
-        }
-        return dict_sum(team_increment, shared_increment)
+                # If the task was finished before starting the sprint it needs
+                # to be included
+                finished_date = task.finished_date.date()
+                if finished_date < self.estimated_start:
+                    finished_date = self.estimated_start
 
-    @property
-    def shared_increment_points(self):
-        return self._get_increment_points()["shared_increment"]
+                points_by_date = self._total_closed_points_by_date.get(finished_date, 0)
+                points_by_date += total_us_points / us_tasks_counter
+                self._total_closed_points_by_date[finished_date] = points_by_date
 
-    def closed_points_by_date(self, date):
-        return self._get_user_stories_points([
-            us for us in self.user_stories.filter(
-                finish_date__lt=date + datetime.timedelta(days=1)
-            ).prefetch_related('role_points', 'role_points__points') if us.is_closed
-        ])
+            # At this point self._total_closed_points_by_date keeps a dict where the
+            # finished date of the task is the key and the value is the increment of points
+            # We are transforming this dict of increments in an acumulation one including
+            # all the dates from the sprint
+
+            acumulated_date_points = 0
+            current_date = self.estimated_start
+            while current_date <= self.estimated_finish:
+                acumulated_date_points += self._total_closed_points_by_date.get(current_date, 0)
+                self._total_closed_points_by_date[current_date] = acumulated_date_points
+                current_date = current_date + datetime.timedelta(days=1)
+
+        return self._total_closed_points_by_date.get(date, 0)

@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -15,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.db import models
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericRelation
 from django.conf import settings
 from django.utils import timezone
 from django.dispatch import receiver
@@ -62,7 +63,7 @@ class Issue(OCCModelMixin, WatchedModelMixin, BlockedMixin, TaggedMixin, models.
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True,
                                     default=None, related_name="issues_assigned_to_me",
                                     verbose_name=_("assigned to"))
-    attachments = generic.GenericRelation("attachments.Attachment")
+    attachments = GenericRelation("attachments.Attachment")
     external_reference = TextArrayField(default=None, verbose_name=_("external reference"))
     _importing = None
 
@@ -97,4 +98,4 @@ class Issue(OCCModelMixin, WatchedModelMixin, BlockedMixin, TaggedMixin, models.
 
     @property
     def is_closed(self):
-        return self.status.is_closed
+        return self.status is not None and self.status.is_closed

@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -20,17 +21,15 @@ from taiga.base.api import serializers
 from taiga.base.utils import json
 from taiga.projects.notifications.mixins import WatchedResourceModelSerializer
 from taiga.projects.notifications.validators import WatchersValidator
-
-from ..userstories.serializers import UserStorySerializer
+from taiga.projects.mixins.serializers import ValidateDuplicatedNameInProjectMixin
+from ..userstories.serializers import UserStoryListSerializer
 from . import models
 
 
-class MilestoneSerializer(WatchersValidator, WatchedResourceModelSerializer, serializers.ModelSerializer):
-    user_stories = UserStorySerializer(many=True, required=False, read_only=True)
+class MilestoneSerializer(WatchersValidator, WatchedResourceModelSerializer, ValidateDuplicatedNameInProjectMixin):
+    user_stories = UserStoryListSerializer(many=True, required=False, read_only=True)
     total_points = serializers.SerializerMethodField("get_total_points")
     closed_points = serializers.SerializerMethodField("get_closed_points")
-    client_increment_points = serializers.SerializerMethodField("get_client_increment_points")
-    team_increment_points = serializers.SerializerMethodField("get_team_increment_points")
 
     class Meta:
         model = models.Milestone
@@ -41,26 +40,3 @@ class MilestoneSerializer(WatchersValidator, WatchedResourceModelSerializer, ser
 
     def get_closed_points(self, obj):
         return sum(obj.closed_points.values())
-
-    def get_client_increment_points(self, obj):
-        return sum(obj.client_increment_points.values())
-
-    def get_team_increment_points(self, obj):
-        return sum(obj.team_increment_points.values())
-
-    def validate_name(self, attrs, source):
-        """
-        Check the milestone name is not duplicated in the project on creation
-        """
-        qs = None
-        # If the milestone exists:
-        if self.object and attrs.get("name", None):
-            qs = models.Milestone.objects.filter(project=self.object.project, name=attrs[source]).exclude(pk=self.object.pk)
-
-        if not self.object and attrs.get("project", None) and attrs.get("name", None):
-            qs = models.Milestone.objects.filter(project=attrs["project"], name=attrs[source])
-
-        if qs and qs.exists():
-              raise serializers.ValidationError(_("Name duplicated for the project"))
-
-        return attrs

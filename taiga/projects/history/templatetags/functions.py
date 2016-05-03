@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -40,4 +41,12 @@ def verbose_name(obj_class, field_name):
 
 @library.global_function
 def lists_diff(list1, list2):
-    return (list(set(list1) - set(list2)))
+    """
+    Get the difference of two list and remove None values.
+
+    >>> list1 = ["a", None, "b", "c"]
+    >>> list2 = [None, "b", "d", "e"]
+    >>> list(filter(None.__ne__, set(list1) - set(list2)))
+    ['c', 'a']
+    """
+    return list(filter(None.__ne__, set(list1) - set(list2)))

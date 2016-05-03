@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -19,7 +20,6 @@ import datetime
 from functools import partial
 
 from django.apps import apps
-from django.db.transaction import atomic
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
@@ -36,7 +36,6 @@ from taiga.projects.history.services import (make_key_from_model_object,
                                              get_last_snapshot_for_key,
                                              get_model_from_key)
 from taiga.permissions.service import user_has_perm
-from taiga.users.models import User
 
 from .models import HistoryChangeNotification, Watched
 
@@ -101,13 +100,13 @@ def analize_object_for_watchers(obj:object, comment:str, user:object):
     if not hasattr(obj, "add_watcher"):
         return
 
-    from taiga import mdrender as mdr
 
     texts = (getattr(obj, "description", ""),
              getattr(obj, "content", ""),
              comment,)
 
-    _, data = mdr.render_and_extract(obj.get_project(), "\n".join(texts))
+    from taiga.mdrender.service import render_and_extract
+    _, data = render_and_extract(obj.get_project(), "\n".join(texts))
 
     if data["mentions"]:
         for user in data["mentions"]:
@@ -213,7 +212,7 @@ def send_notifications(obj, *, history):
         return None
 
     key = make_key_from_model_object(obj)
-    owner = User.objects.get(pk=history.user["pk"])
+    owner = get_user_model().objects.get(pk=history.user["pk"])
     notification, created = (HistoryChangeNotification.objects.select_for_update()
                              .get_or_create(key=key,
                                             owner=owner,
@@ -376,12 +375,13 @@ def get_projects_watched(user_or_id):
     """
 
     if isinstance(user_or_id, get_user_model()):
-        user_id = user_or_id.id
+        user = user_or_id
     else:
-        user_id = user_or_id
+        user = get_user_model().objects.get(id=user_or_id)
 
     project_class = apps.get_model("projects", "Project")
-    return project_class.objects.filter(notify_policies__user__id=user_id).exclude(notify_policies__notify_level=NotifyLevel.none)
+    project_ids = user.notify_policies.exclude(notify_level=NotifyLevel.none).values_list("project__id", flat=True)
+    return project_class.objects.filter(id__in=project_ids)
 
 def add_watcher(obj, user):
     """Add a watcher to an object.
@@ -464,4 +464,4 @@ def make_ms_thread_index(msg_id, dt):
     thread_bin += md5.digest()
 
     # base64 encode
-    return base64.b64encode(thread_bin)
+    return base64.b64encode(thread_bin).decode("utf-8")

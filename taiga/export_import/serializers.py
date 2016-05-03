@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -20,6 +21,7 @@ import os
 from collections import OrderedDict
 
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError
@@ -28,10 +30,10 @@ from django.utils.translation import ugettext as _
 from django.contrib.contenttypes.models import ContentType
 
 
-from taiga import mdrender
 from taiga.base.api import serializers
 from taiga.base.fields import JsonField, PgArrayField
 
+from taiga.mdrender.service import render as mdrender
 from taiga.projects import models as projects_models
 from taiga.projects.custom_attributes import models as custom_attributes_models
 from taiga.projects.userstories import models as userstories_models
@@ -42,14 +44,13 @@ from taiga.projects.wiki import models as wiki_models
 from taiga.projects.history import models as history_models
 from taiga.projects.attachments import models as attachments_models
 from taiga.timeline import models as timeline_models
-from taiga.timeline import service as timeline_service
 from taiga.users import models as users_models
 from taiga.projects.notifications import services as notifications_services
 from taiga.projects.votes import services as votes_service
 from taiga.projects.history import services as history_service
 
 
-class AttachedFileField(serializers.WritableField):
+class FileField(serializers.WritableField):
     read_only = False
 
     def to_native(self, obj):
@@ -66,7 +67,21 @@ class AttachedFileField(serializers.WritableField):
     def from_native(self, data):
         if not data:
             return None
-        return ContentFile(base64.b64decode(data['data']), name=data['name'])
+
+        decoded_data = b''
+        # The original file was encoded by chunks but we don't really know its
+        # length or if it was multiple of 3 so we must iterate over all those chunks
+        # decoding them one by one
+        for decoding_chunk in data['data'].split("="):
+            # When encoding to base64 3 bytes are transformed into 4 bytes and
+            # the extra space of the block is filled with =
+            # We must ensure that the decoding chunk has a length multiple of 4 so
+            # we restore the stripped '='s adding appending them until the chunk has
+            # a length multiple of 4
+            decoding_chunk += "=" * (-len(decoding_chunk) % 4)
+            decoded_data += base64.b64decode(decoding_chunk+"=")
+
+        return ContentFile(decoded_data, name=data['name'])
 
 
 class RelatedNoneSafeField(serializers.RelatedField):
@@ -140,7 +155,7 @@ class CommentField(serializers.WritableField):
 
     def field_from_native(self, data, files, field_name, into):
         super().field_from_native(data, files, field_name, into)
-        into["comment_html"] = mdrender.render(self.context['project'], data.get("comment", ""))
+        into["comment_html"] = mdrender(self.context['project'], data.get("comment", ""))
 
 
 class ProjectRelatedField(serializers.RelatedField):
@@ -249,7 +264,7 @@ class WatcheableObjectModelSerializer(serializers.ModelSerializer):
         adding_watcher_emails = list(new_watcher_emails.difference(old_watcher_emails))
         removing_watcher_emails = list(old_watcher_emails.difference(new_watcher_emails))
 
-        User = apps.get_model("users", "User")
+        User = get_user_model()
         adding_users = User.objects.filter(email__in=adding_watcher_emails)
         removing_users = User.objects.filter(email__in=removing_watcher_emails)
 
@@ -293,7 +308,7 @@ class HistoryExportSerializerMixin(serializers.ModelSerializer):
 
 class AttachmentExportSerializer(serializers.ModelSerializer):
     owner = UserRelatedField(required=False)
-    attached_file = AttachedFileField()
+    attached_file = FileField()
     modified_date = serializers.DateTimeField(required=False)
 
     class Meta:
@@ -628,7 +643,21 @@ class TimelineExportSerializer(serializers.ModelSerializer):
 
 
 class ProjectExportSerializer(WatcheableObjectModelSerializer):
+    logo = FileField(required=False)
+    anon_permissions = PgArrayField(required=False)
+    public_permissions = PgArrayField(required=False)
+    modified_date = serializers.DateTimeField(required=False)
+    roles = RoleExportSerializer(many=True, required=False)
     owner = UserRelatedField(required=False)
+    memberships = MembershipExportSerializer(many=True, required=False)
+    points = PointsExportSerializer(many=True, required=False)
+    us_statuses = UserStoryStatusExportSerializer(many=True, required=False)
+    task_statuses = TaskStatusExportSerializer(many=True, required=False)
+    issue_types = IssueTypeExportSerializer(many=True, required=False)
+    issue_statuses = IssueStatusExportSerializer(many=True, required=False)
+    priorities = PriorityExportSerializer(many=True, required=False)
+    severities = SeverityExportSerializer(many=True, required=False)
+    tags_colors = JsonField(required=False)
     default_points = serializers.SlugRelatedField(slug_field="name", required=False)
     default_us_status = serializers.SlugRelatedField(slug_field="name", required=False)
     default_task_status = serializers.SlugRelatedField(slug_field="name", required=False)
@@ -636,34 +665,16 @@ class ProjectExportSerializer(WatcheableObjectModelSerializer):
     default_severity = serializers.SlugRelatedField(slug_field="name", required=False)
     default_issue_status = serializers.SlugRelatedField(slug_field="name", required=False)
     default_issue_type = serializers.SlugRelatedField(slug_field="name", required=False)
-    memberships = MembershipExportSerializer(many=True, required=False)
-    points = PointsExportSerializer(many=True, required=False)
-    us_statuses = UserStoryStatusExportSerializer(many=True, required=False)
-    task_statuses = TaskStatusExportSerializer(many=True, required=False)
-    issue_statuses = IssueStatusExportSerializer(many=True, required=False)
-    priorities = PriorityExportSerializer(many=True, required=False)
-    severities = SeverityExportSerializer(many=True, required=False)
-    issue_types = IssueTypeExportSerializer(many=True, required=False)
     userstorycustomattributes = UserStoryCustomAttributeExportSerializer(many=True, required=False)
     taskcustomattributes = TaskCustomAttributeExportSerializer(many=True, required=False)
     issuecustomattributes = IssueCustomAttributeExportSerializer(many=True, required=False)
-    roles = RoleExportSerializer(many=True, required=False)
-    milestones = MilestoneExportSerializer(many=True, required=False)
-    wiki_pages = WikiPageExportSerializer(many=True, required=False)
-    wiki_links = WikiLinkExportSerializer(many=True, required=False)
     user_stories = UserStoryExportSerializer(many=True, required=False)
     tasks = TaskExportSerializer(many=True, required=False)
+    milestones = MilestoneExportSerializer(many=True, required=False)
     issues = IssueExportSerializer(many=True, required=False)
-    tags_colors = JsonField(required=False)
-    anon_permissions = PgArrayField(required=False)
-    public_permissions = PgArrayField(required=False)
-    modified_date = serializers.DateTimeField(required=False)
-    timeline = serializers.SerializerMethodField("get_timeline")
+    wiki_links = WikiLinkExportSerializer(many=True, required=False)
+    wiki_pages = WikiPageExportSerializer(many=True, required=False)
 
     class Meta:
         model = projects_models.Project
         exclude = ('id', 'creation_template', 'members')
-
-    def get_timeline(self, obj):
-        timeline_qs = timeline_service.get_project_timeline(obj)
-        return TimelineExportSerializer(timeline_qs, many=True).data

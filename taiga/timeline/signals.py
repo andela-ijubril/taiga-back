@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -15,14 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from taiga.projects.history import services as history_services
-from taiga.projects.models import Project
-from taiga.users.models import User
 from taiga.projects.history.choices import HistoryType
-from taiga.projects.notifications import services as notifications_services
 from taiga.timeline.service import (push_to_timeline,
                                     build_user_namespace,
                                     build_project_namespace,
@@ -44,6 +43,8 @@ def _push_to_timelines(project, user, obj, event_type, created_datetime, extra_d
         _push_to_timeline(project, obj, event_type, created_datetime,
             namespace=build_project_namespace(project),
             extra_data=extra_data)
+
+        project.refresh_totals()
 
         if hasattr(obj, "get_related_people"):
             related_people = obj.get_related_people()
@@ -75,6 +76,9 @@ def on_new_history_entry(sender, instance, created, **kwargs):
     if instance.is_hidden:
         return None
 
+    if instance.user["pk"] is None:
+        return None
+
     model = history_services.get_model_from_key(instance.key)
     pk = history_services.get_pk_from_key(instance.key)
     obj = model.objects.get(pk=pk)
@@ -87,7 +91,7 @@ def on_new_history_entry(sender, instance, created, **kwargs):
     elif instance.type == HistoryType.delete:
         event_type = "delete"
 
-    user = User.objects.get(id=instance.user["pk"])
+    user = get_user_model().objects.get(id=instance.user["pk"])
     values_diff = instance.values_diff
     _clean_description_fields(values_diff)
 

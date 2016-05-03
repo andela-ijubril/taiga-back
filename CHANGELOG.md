@@ -1,24 +1,93 @@
 # Changelog #
 
 
-## 1.10.0 ????? (unreleased)
+## 2.1.0 Ursus Americanus (2016-05-03)
 
 ### Features
-- [CSV Reports] Add fields "created_date", "modified_date", "finished_date" to issues CSV report.
+- Add sprint name and slug on search results for user stories ((thanks to [@everblut](https://github.com/everblut)))
+- [API] projects resource: Random order if `discover_mode=true` and `is_featured=true`.
+- Webhooks: Improve webhook data:
+    - add permalinks
+    - owner, assigned_to, status, type, priority, severity, user_story, milestone, project are objects
+    - add role to 'points' object
+    - add the owner to every notification ('by' field)
+    - add the date of the notification ('date' field)
+    - show human diffs in 'changes'
+    - remove unnecessary data
+- CSV Reports:
+    - Change field name: 'milestone' to 'sprint'
+    - Add new fields: 'sprint_estimated_start' and 'sprint_estimated_end'
+- Importer:
+    - Remove project after load a dump file fails
+    - Add more info the the logger if load a dump file fails
 
 ### Misc
 - Lots of small and not so small bugfixes.
 
 
-## 1.9.0 Abies Siberica (2015-11-XX)
+## 2.0.0 Pulsatilla Patens (2016-04-04)
 
 ### Features
+- Ability to create url custom fields. (thanks to [@astagi](https://github.com/astagi)).
+- Blocked projects support
+- Transfer projects ownership support
+- Customizable max private and public projects per user
+- Customizable max of memberships per owned private and public projects
 
+### Misc
+- Lots of small and not so small bugfixes.
+
+
+## 1.10.0 Dryas Octopetala (2016-01-30)
+
+### Features
+- Add logo field to project model
+- Add is_featured field to project model
+- Add is_looking_for_people and looking_for_people_note fields to project model
+- Filter projects list by
+    - is_looking_for_people
+    - is_featured
+    - is_backlog_activated
+    - is_kanban_activated
+- Search projects by text query (order by ranking name > tags > description)
+- Order projects list:
+    - alphabetically by default
+    - by fans (last week/moth/year/all time)
+    - by activity (last week/moth/year/all time)
+- Show stats for discover secction
+- i18n.
+  - Add swedish (sv) translation.
+  - Add turkish (tr) translation.
+
+### Misc
+- Lots of small and not so small bugfixes.
+
+
+## 1.9.1 Taiga Tribe (2016-01-05)
+
+### Features
+- [CSV Reports] Add fields "created_date", "modified_date", "finished_date" to issues CSV report.
+- [Attachment] Generate 'card-image' size (300x200) thumbnails for attached image files.
+
+### Misc
+- Improve login and forgot password: allow username or email case-insensitive if the query only
+  match with one user.
+- Improve the django admin panel, now it is more usable and all the selector fields works properly.
+- [API] Add tribe_gig field to user stories (improve integration between Taiga and Taiga Tribe).
+- [API] Performance improvements for project stats.
+- [Events] Add command to send an instant notifications to all the currently online users.
+- Lots of small and not so small bugfixes.
+
+
+## 1.9.0 Abies Siberica (2015-11-02)
+
+### Features
 - Project can be starred or unstarred and the fans list can be obtained.
 - US, tasks and Issues can be upvoted or downvoted and the voters list can be obtained.
 - Now users can watch public issues, tasks and user stories.
 - Add endpoints to show the watchers list for issues, tasks and user stories.
-- Add a "field type" property for custom fields: 'text', 'multiline text' and 'date' right now (thanks to [@artlepool](https://github.com/artlepool)).
+- Add a "field type" property for custom fields: 'text', 'multiline text' and 'date' right nowi
+  (thanks to [@artlepool](https://github.com/artlepool)).
 - Allow multiple actions in the commit messages.
 - Now every user that coments USs, Issues or Tasks will be involved in it (add author to the watchers list).
 - Now profile timelines only show content about the objects (US/Tasks/Issues/Wiki pages) you are involved.
@@ -44,7 +113,8 @@
 - API: Improve and fix some errors in issues/filters_data and userstories/filters_data.
 - API: resolver suport ref GET param and return a story, task or issue.
 - Webhooks: Add deleted datetime to webhooks responses when isues, tasks or USs are deleted.
-- Add headers to allow threading for notification emails about changes to issues, tasks, user stories, and wiki pages. (thanks to [@brett](https://github.com/brettp)).
+- Add headers to allow threading for notification emails about changes to issues, tasks, user stories,
+  and wiki pages. (thanks to [@brett](https://github.com/brettp)).
 - Lots of small and not so small bugfixes.
 
 

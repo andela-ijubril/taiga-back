@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -17,25 +18,45 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from taiga.projects.models import Project
-from taiga.export_import.renderers import ExportRenderer
-from taiga.export_import.service import render_project
+from taiga.export_import.services import render_project
 
-
-import resource
+import os
 
 
 class Command(BaseCommand):
-    args = '<project_slug project_slug ...>'
-    help = 'Export a project to json'
-    renderer_context = {"indent": 4}
-    renderer = ExportRenderer()
+    help = "Export projects to json"
+
+    def add_arguments(self, parser):
+        parser.add_argument("project_slugs",
+                            nargs="+",
+                            help="<project_slug project_slug ...>")
+
+        parser.add_argument("-d", "--dst_dir",
+                            action="store",
+                            dest="dst_dir",
+                            default="./",
+                            metavar="DIR",
+                            help="Directory to save the json files. ('./' by default)")
 
     def handle(self, *args, **options):
-        for project_slug in args:
+        dst_dir = options["dst_dir"]
+
+        if not os.path.exists(dst_dir):
+            raise CommandError("Directory {} does not exist.".format(dst_dir))
+
+        if not os.path.isdir(dst_dir):
+            raise CommandError("'{}' must be a directory, not a file.".format(dst_dir))
+
+        project_slugs = options["project_slugs"]
+
+        for project_slug in project_slugs:
             try:
                 project = Project.objects.get(slug=project_slug)
             except Project.DoesNotExist:
-                raise CommandError('Project "%s" does not exist' % project_slug)
+                raise CommandError("Project '{}' does not exist".format(project_slug))
 
-            with open('%s.json'%(project_slug), 'w') as outfile:
-                render_project(project, outfile)
+            dst_file = os.path.join(dst_dir, "{}.json".format(project_slug))
+            with open(src_file, "w") as f:
+                render_project(project, f)
+
+            print("-> Generate dump of project '{}' in '{}'".format(project.name, src_file))

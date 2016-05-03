@@ -1,5 +1,6 @@
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Taiga Agile LLC <support@taiga.io>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Taiga Agile LLC <support@taiga.io>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -26,6 +27,7 @@ class GenericSitemap(Sitemap):
     def items(self):
         return [
             {"url_key": "home", "changefreq": "monthly", "priority": 1},
+            {"url_key": "discover", "changefreq": "daily", "priority": 1},
             {"url_key": "login", "changefreq": "monthly", "priority": 1},
             {"url_key": "register", "changefreq": "monthly", "priority": 1},
             {"url_key": "forgot-password", "changefreq": "monthly", "priority": 1}

@@ -1,6 +1,7 @@
-# Copyright (C) 2013 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2013 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -25,7 +26,7 @@ from taiga.celery import app
 
 from .serializers import (UserStorySerializer, IssueSerializer, TaskSerializer,
                           WikiPageSerializer, MilestoneSerializer,
-                          HistoryEntrySerializer)
+                          HistoryEntrySerializer, UserSerializer)
 from .models import WebhookLog
 
 
@@ -66,58 +67,70 @@ def _send_request(webhook_id, url, key, data):
     request = requests.Request('POST', url, data=serialized_data, headers=headers)
     prepared_request = request.prepare()
 
-    session = requests.Session()
-    try:
-        response = session.send(prepared_request)
-        webhook_log = WebhookLog.objects.create(webhook_id=webhook_id, url=url,
-                                                status=response.status_code,
-                                                request_data=data,
-                                                request_headers=dict(prepared_request.headers),
-                                                response_data=response.content,
-                                                response_headers=dict(response.headers),
-                                                duration=response.elapsed.total_seconds())
-    except RequestException as e:
-        webhook_log = WebhookLog.objects.create(webhook_id=webhook_id, url=url, status=0,
-                                                request_data=data,
-                                                request_headers=dict(prepared_request.headers),
-                                                response_data="error-in-request: {}".format(str(e)),
-                                                response_headers={},
-                                                duration=0)
-    session.close()
+    with requests.Session() as session:
+        try:
+            response = session.send(prepared_request)
+        except RequestException as e:
+            # Error sending the webhook
+            webhook_log = WebhookLog.objects.create(webhook_id=webhook_id, url=url, status=0,
+                                                    request_data=data,
+                                                    request_headers=dict(prepared_request.headers),
+                                                    response_data="error-in-request: {}".format(str(e)),
+                                                    response_headers={},
+                                                    duration=0)
+        else:
+            # Webhook was sent successfully
+            webhook_log = WebhookLog.objects.create(webhook_id=webhook_id, url=url,
+                                                    status=response.status_code,
+                                                    request_data=data,
+                                                    request_headers=dict(prepared_request.headers),
+                                                    response_data=response.content,
+                                                    response_headers=dict(response.headers),
+                                                    duration=response.elapsed.total_seconds())
+        finally:
+            # Only the last ten webhook logs traces are required
+            # so remove the leftover
+            ids = (WebhookLog.objects.filter(webhook_id=webhook_id)
+                                     .order_by("-id")
+                                     .values_list('id', flat=True)[10:])
+            WebhookLog.objects.filter(id__in=ids).delete()
 
-    ids = [log.id for log in WebhookLog.objects.filter(webhook_id=webhook_id).order_by("-id")[10:]]
-    WebhookLog.objects.filter(id__in=ids).delete()
     return webhook_log
 
 
 @app.task
-def change_webhook(webhook_id, url, key, obj, change):
+def create_webhook(webhook_id, url, key, by, date, obj):
     data = {}
-    data['data'] = _serialize(obj)
-    data['action'] = "change"
-    data['type'] = _get_type(obj)
-    data['change'] = _serialize(change)
-
-    return _send_request(webhook_id, url, key, data)
-
-
-@app.task
-def create_webhook(webhook_id, url, key, obj):
-    data = {}
-    data['data'] = _serialize(obj)
     data['action'] = "create"
     data['type'] = _get_type(obj)
+    data['by'] = UserSerializer(by).data
+    data['date'] = date
+    data['data'] = _serialize(obj)
 
     return _send_request(webhook_id, url, key, data)
 
 
 @app.task
-def delete_webhook(webhook_id, url, key, obj, deleted_date):
+def delete_webhook(webhook_id, url, key, by, date, obj):
     data = {}
-    data['data'] = _serialize(obj)
     data['action'] = "delete"
     data['type'] = _get_type(obj)
-    data['deleted_date'] = deleted_date
+    data['by'] = UserSerializer(by).data
+    data['date'] = date
+    data['data'] = _serialize(obj)
+
+    return _send_request(webhook_id, url, key, data)
+
+
+@app.task
+def change_webhook(webhook_id, url, key, by, date, obj, change):
+    data = {}
+    data['action'] = "change"
+    data['type'] = _get_type(obj)
+    data['by'] = UserSerializer(by).data
+    data['date'] = date
+    data['data'] = _serialize(obj)
+    data['change'] = _serialize(change)
 
     return _send_request(webhook_id, url, key, data)
 
@@ -128,10 +141,12 @@ def resend_webhook(webhook_id, url, key, data):
 
 
 @app.task
-def test_webhook(webhook_id, url, key):
+def test_webhook(webhook_id, url, key, by, date):
     data = {}
-    data['data'] = {"test": "test"}
     data['action'] = "test"
     data['type'] = "test"
+    data['by'] = UserSerializer(by).data
+    data['date'] = date
+    data['data'] = {"test": "test"}
 
     return _send_request(webhook_id, url, key, data)

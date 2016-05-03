@@ -1,5 +1,6 @@
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Taiga Agile LLC <support@taiga.io>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Taiga Agile LLC <support@taiga.io>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -30,6 +31,9 @@ class WikiPagesSitemap(Sitemap):
         queryset = wiki_page_model.objects.filter(Q(project__is_private=False) |
                                                   Q(project__is_private=True,
                                                     project__anon_permissions__contains=["view_wiki_pages"]))
+
+        # Exclude blocked projects
+        queryset = queryset.filter(project__blocked_code__isnull=True)
 
         # Exclude wiki pages from projects without wiki section enabled
         queryset = queryset.exclude(project__is_wiki_activated=False)

@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -19,7 +20,7 @@ from taiga.base.api.permissions import IsSuperUser
 from taiga.base.api.permissions import AllowAny
 from taiga.base.api.permissions import IsAuthenticated
 from taiga.base.api.permissions import HasProjectPerm
-from taiga.base.api.permissions import IsProjectOwner
+from taiga.base.api.permissions import IsProjectAdmin
 from taiga.base.api.permissions import PermissionComponent
 
 
@@ -53,8 +54,8 @@ class UserPermission(TaigaResourcePermission):
 
 class RolesPermission(TaigaResourcePermission):
     retrieve_perms = HasProjectPerm('view_project')
-    create_perms = IsProjectOwner()
-    update_perms = IsProjectOwner()
-    partial_update_perms = IsProjectOwner()
-    destroy_perms = IsProjectOwner()
+    create_perms = IsProjectAdmin()
+    update_perms = IsProjectAdmin()
+    partial_update_perms = IsProjectAdmin()
+    destroy_perms = IsProjectAdmin()
     list_perms = AllowAny()

@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -32,7 +33,7 @@ def test_userstory_custom_attribute_duplicate_name_error_on_create(client):
     custom_attr_1 = f.UserStoryCustomAttributeFactory()
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
 
     url = reverse("userstory-custom-attributes-list")
@@ -49,7 +50,7 @@ def test_userstory_custom_attribute_duplicate_name_error_on_update(client):
     custom_attr_2 = f.UserStoryCustomAttributeFactory(project=custom_attr_1.project)
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
 
     url = reverse("userstory-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
@@ -65,10 +66,10 @@ def test_userstory_custom_attribute_duplicate_name_error_on_move_between_project
     custom_attr_2 = f.UserStoryCustomAttributeFactory(name=custom_attr_1.name)
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
-                                 is_owner=True)
+                                 is_admin=True)
     f.MembershipFactory(user=custom_attr_1.project.owner,
                         project=custom_attr_2.project,
-                        is_owner=True)
+                        is_admin=True)
 
 
     url = reverse("userstory-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
@@ -92,7 +93,7 @@ def test_userstory_custom_attributes_values_update(client):
     user_story = f.UserStoryFactory()
     member = f.MembershipFactory(user=user_story.project.owner,
                                  project=user_story.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
     custom_attr_1 = f.UserStoryCustomAttributeFactory(project=user_story.project)
     ct1_id = "{}".format(custom_attr_1.id)
@@ -123,7 +124,7 @@ def test_userstory_custom_attributes_values_update_with_error_invalid_key(client
     user_story = f.UserStoryFactory()
     member = f.MembershipFactory(user=user_story.project.owner,
                                  project=user_story.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
     custom_attr_1 = f.UserStoryCustomAttributeFactory(project=user_story.project)
     ct1_id = "{}".format(custom_attr_1.id)
@@ -154,7 +155,7 @@ def test_trigger_update_userstorycustomvalues_afeter_remove_userstorycustomattri
     user_story = f.UserStoryFactory()
     member = f.MembershipFactory(user=user_story.project.owner,
                                  project=user_story.project,
-                                 is_owner=True)
+                                 is_admin=True)
 
     custom_attr_1 = f.UserStoryCustomAttributeFactory(project=user_story.project)
     ct1_id = "{}".format(custom_attr_1.id)

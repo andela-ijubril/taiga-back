@@ -1,4 +1,4 @@
-# Copyright (C) 2014-2015 Taiga Agile LLC <support@taiga.io>
+# Copyright (C) 2014-2016 Taiga Agile LLC <support@taiga.io>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -14,28 +14,41 @@
 
 
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.db.models import Count
+from django.db.models import Q
 from django.utils import timezone
+
 from datetime import timedelta
 from collections import OrderedDict
 
 
-def get_users_stats():
-    model = apps.get_model("users", "User")
-    queryset =  model.objects.filter(is_active=True, is_system=False)
+###########################################################################
+# Public Stats
+###########################################################################
+
+def get_users_public_stats():
+    model = get_user_model()
+    queryset = model.objects.filter(is_active=True, is_system=False)
     stats = OrderedDict()
 
-    # Total
-    stats["total"] = queryset.count()
-
-    # Average last 7 days
     today = timezone.now()
-    seven_days_ago = today-timedelta(days=7)
-    stats["average_last_seven_days"] = (queryset.filter(date_joined__range=(seven_days_ago, today))
+    yesterday = today - timedelta(days=1)
+    seven_days_ago = yesterday - timedelta(days=7)
+    a_year_ago = today - timedelta(days=365)
+
+    stats["total"] = queryset.count()
+    stats["today"] = queryset.filter(date_joined__year=today.year,
+                                     date_joined__month=today.month,
+                                     date_joined__day=today.day).count()
+    stats["average_last_seven_days"] = (queryset.filter(date_joined__range=(seven_days_ago, yesterday))
                                                 .count()) / 7
+    stats["average_last_five_working_days"] = (queryset.filter(date_joined__range=(seven_days_ago, yesterday))
+                                                       .exclude(Q(date_joined__week_day=1) |
+                                                                Q(date_joined__week_day=7))
+                                                       .count()) / 5
 
     # Graph: users last year
-    a_year_ago = timezone.now() - timedelta(days=365)
     # increments ->
     #   SELECT date_trunc('week', "filtered_users"."date_joined") AS "week",
     #          count(*)
@@ -63,17 +76,25 @@ def get_users_stats():
     return stats
 
 
-def get_projects_stats():
+def get_projects_public_stats():
     model = apps.get_model("projects", "Project")
-    queryset =  model.objects.all()
+    queryset = model.objects.all()
     stats = OrderedDict()
 
-    stats["total"] = queryset.count()
-
     today = timezone.now()
-    seven_days_ago = today-timedelta(days=7)
-    stats["average_last_seven_days"] = (queryset.filter(created_date__range=(seven_days_ago, today))
+    yesterday = today - timedelta(days=1)
+    seven_days_ago = yesterday - timedelta(days=7)
+
+    stats["total"] = queryset.count()
+    stats["today"] = queryset.filter(created_date__year=today.year,
+                                     created_date__month=today.month,
+                                     created_date__day=today.day).count()
+    stats["average_last_seven_days"] = (queryset.filter(created_date__range=(seven_days_ago, yesterday))
                                                  .count()) / 7
+    stats["average_last_five_working_days"] = (queryset.filter(created_date__range=(seven_days_ago, yesterday))
+                                                       .exclude(Q(created_date__week_day=1) |
+                                                                Q(created_date__week_day=7))
+                                                       .count()) / 5
 
     stats["total_with_backlog"] = (queryset.filter(is_backlog_activated=True,
                                                    is_kanban_activated=False)
@@ -93,15 +114,41 @@ def get_projects_stats():
     return stats
 
 
-def get_user_stories_stats():
+def get_user_stories_public_stats():
     model = apps.get_model("userstories", "UserStory")
-    queryset =  model.objects.all()
+    queryset = model.objects.all()
     stats = OrderedDict()
+
+    today = timezone.now()
+    yesterday = today - timedelta(days=1)
+    seven_days_ago = yesterday - timedelta(days=7)
+
+    stats["total"] = queryset.count()
+    stats["today"] = queryset.filter(created_date__year=today.year,
+                                     created_date__month=today.month,
+                                     created_date__day=today.day).count()
+    stats["average_last_seven_days"] = (queryset.filter(created_date__range=(seven_days_ago, yesterday))
+                                                 .count()) / 7
+    stats["average_last_five_working_days"] = (queryset.filter(created_date__range=(seven_days_ago, yesterday))
+                                                       .exclude(Q(created_date__week_day=1) |
+                                                                Q(created_date__week_day=7))
+                                                       .count()) / 5
+
+    return stats
+
+###########################################################################
+# Discover Stats
+###########################################################################
+
+def get_projects_discover_stats(user=None):
+    model = apps.get_model("projects", "Project")
+    queryset = model.objects.all()
+    stats = OrderedDict()
+
+    # Get Public (visible) projects
+    queryset = queryset.filter(Q(is_private=False) |
+                               Q(is_private=True, anon_permissions__contains=["view_project"]))
 
     stats["total"] = queryset.count()
 
-    today = timezone.now()
-    seven_days_ago = today-timedelta(days=7)
-    stats["average_last_seven_days"] = (queryset.filter(created_date__range=(seven_days_ago, today))
-                                                 .count()) / 7
     return stats

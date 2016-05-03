@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -35,13 +36,14 @@ from taiga.projects.models import Project, Membership
 from taiga.projects.issues.models import Issue
 from taiga.projects.tasks.models import Task
 from taiga.projects.serializers import ProjectSerializer
+from taiga.users import services as users_services
 
+from . import exceptions as err
 from . import mixins
-from . import serializers
-from . import service
 from . import permissions
+from . import serializers
+from . import services
 from . import tasks
-from . import dump_service
 from . import throttling
 from .renderers import ExportRenderer
 
@@ -63,14 +65,14 @@ class ProjectExporterViewSet(mixins.ImportThrottlingPolicyMixin, GenericViewSet)
 
         if settings.CELERY_ENABLED:
             task = tasks.dump_project.delay(request.user, project)
-            tasks.delete_project_dump.apply_async((project.pk, project.slug),
+            tasks.delete_project_dump.apply_async((project.pk, project.slug, task.id),
                                                   countdown=settings.EXPORTS_TTL)
             return response.Accepted({"export_id": task.id})
 
         path = "exports/{}/{}-{}.json".format(project.pk, project.slug, uuid.uuid4().hex)
         storage_path = default_storage.path(path)
         with default_storage.open(storage_path, mode="w") as outfile:
-            service.render_project(project, outfile)
+            services.render_project(project, outfile)
 
         response_data = {
             "url": default_storage.url(path)
@@ -89,27 +91,40 @@ class ProjectImporterViewSet(mixins.ImportThrottlingPolicyMixin, CreateModelMixi
         data = request.DATA.copy()
         data['owner'] = data.get('owner', request.user.email)
 
+        # Validate if the project can be imported
+        is_private = data.get('is_private', False)
+        total_memberships = len([m for m in data.get("memberships", [])
+                                            if m.get("email", None) != data["owner"]])
+        total_memberships = total_memberships + 1 # 1 is the owner
+        (enough_slots, error_message) = users_services.has_available_slot_for_import_new_project(
+            self.request.user,
+            is_private,
+            total_memberships
+        )
+        if not enough_slots:
+            raise exc.NotEnoughSlotsForProject(is_private, total_memberships, error_message)
+
         # Create Project
-        project_serialized = service.store_project(data)
+        project_serialized = services.store.store_project(data)
 
         if not project_serialized:
-            raise exc.BadRequest(service.get_errors())
+            raise exc.BadRequest(services.store.get_errors())
 
         # Create roles
         roles_serialized = None
         if "roles" in data:
-            roles_serialized = service.store_roles(project_serialized.object, data)
+            roles_serialized = services.store.store_roles(project_serialized.object, data)
 
         if not roles_serialized:
             raise exc.BadRequest(_("We needed at least one role"))
 
         # Create memberships
         if "memberships" in data:
-            service.store_memberships(project_serialized.object, data)
+            services.store.store_memberships(project_serialized.object, data)
 
         try:
             owner_membership = project_serialized.object.memberships.get(user=project_serialized.object.owner)
-            owner_membership.is_owner = True
+            owner_membership.is_admin = True
             owner_membership.save()
         except Membership.DoesNotExist:
             Membership.objects.create(
@@ -117,62 +132,62 @@ class ProjectImporterViewSet(mixins.ImportThrottlingPolicyMixin, CreateModelMixi
                 email=project_serialized.object.owner.email,
                 user=project_serialized.object.owner,
                 role=project_serialized.object.roles.all().first(),
-                is_owner=True
+                is_admin=True
             )
 
         # Create project values choicess
         if "points" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "points", serializers.PointsExportSerializer)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "points", serializers.PointsExportSerializer)
         if "issue_types" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "issue_types",
-                                  serializers.IssueTypeExportSerializer)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "issue_types",
+                                                           serializers.IssueTypeExportSerializer)
         if "issue_statuses" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "issue_statuses",
-                                  serializers.IssueStatusExportSerializer,)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "issue_statuses",
+                                                           serializers.IssueStatusExportSerializer,)
         if "us_statuses" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "us_statuses",
-                                  serializers.UserStoryStatusExportSerializer,)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "us_statuses",
+                                                           serializers.UserStoryStatusExportSerializer,)
         if "task_statuses" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "task_statuses",
-                                  serializers.TaskStatusExportSerializer)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "task_statuses",
+                                                           serializers.TaskStatusExportSerializer)
         if "priorities" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "priorities",
-                                  serializers.PriorityExportSerializer)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "priorities",
+                                                           serializers.PriorityExportSerializer)
         if "severities" in data:
-            service.store_choices(project_serialized.object, data,
-                                  "severities",
-                                  serializers.SeverityExportSerializer)
+            services.store.store_project_attributes_values(project_serialized.object, data,
+                                                           "severities",
+                                                           serializers.SeverityExportSerializer)
 
         if ("points" in data or "issues_types" in data or
                 "issues_statuses" in data or "us_statuses" in data or
                 "task_statuses" in data or "priorities" in data or
                 "severities" in data):
-            service.store_default_choices(project_serialized.object, data)
+            services.store.store_default_project_attributes_values(project_serialized.object, data)
 
         # Created custom attributes
         if "userstorycustomattributes" in data:
-            service.store_custom_attributes(project_serialized.object, data,
-                                            "userstorycustomattributes",
-                                            serializers.UserStoryCustomAttributeExportSerializer)
+            services.store.store_custom_attributes(project_serialized.object, data,
+                                                   "userstorycustomattributes",
+                                                   serializers.UserStoryCustomAttributeExportSerializer)
 
         if "taskcustomattributes" in data:
-            service.store_custom_attributes(project_serialized.object, data,
-                                            "taskcustomattributes",
-                                            serializers.TaskCustomAttributeExportSerializer)
+            services.store.store_custom_attributes(project_serialized.object, data,
+                                                   "taskcustomattributes",
+                                                   serializers.TaskCustomAttributeExportSerializer)
 
         if "issuecustomattributes" in data:
-            service.store_custom_attributes(project_serialized.object, data,
-                                            "issuecustomattributes",
-                                            serializers.IssueCustomAttributeExportSerializer)
+            services.store.store_custom_attributes(project_serialized.object, data,
+                                                   "issuecustomattributes",
+                                                   serializers.IssueCustomAttributeExportSerializer)
 
         # Is there any error?
-        errors = service.get_errors()
+        errors = services.store.get_errors()
         if errors:
             raise exc.BadRequest(errors)
 
@@ -181,6 +196,102 @@ class ProjectImporterViewSet(mixins.ImportThrottlingPolicyMixin, CreateModelMixi
         response_data['id'] = project_serialized.object.id
         headers = self.get_success_headers(response_data)
         return response.Created(response_data, headers=headers)
+
+    @detail_route(methods=['post'])
+    @method_decorator(atomic)
+    def milestone(self, request, *args, **kwargs):
+        project = self.get_object_or_none()
+        self.check_permissions(request, 'import_item', project)
+
+        milestone = services.store.store_milestone(project, request.DATA.copy())
+
+        errors = services.store.get_errors()
+        if errors:
+            raise exc.BadRequest(errors)
+
+        headers = self.get_success_headers(milestone.data)
+        return response.Created(milestone.data, headers=headers)
+
+    @detail_route(methods=['post'])
+    @method_decorator(atomic)
+    def us(self, request, *args, **kwargs):
+        project = self.get_object_or_none()
+        self.check_permissions(request, 'import_item', project)
+
+        us = services.store.store_user_story(project, request.DATA.copy())
+
+        errors = services.store.get_errors()
+        if errors:
+            raise exc.BadRequest(errors)
+
+        headers = self.get_success_headers(us.data)
+        return response.Created(us.data, headers=headers)
+
+    @detail_route(methods=['post'])
+    @method_decorator(atomic)
+    def task(self, request, *args, **kwargs):
+        project = self.get_object_or_none()
+        self.check_permissions(request, 'import_item', project)
+
+        signals.pre_save.disconnect(sender=Task,
+                                    dispatch_uid="set_finished_date_when_edit_task")
+
+        task = services.store.store_task(project, request.DATA.copy())
+
+        errors = services.store.get_errors()
+        if errors:
+            raise exc.BadRequest(errors)
+
+        headers = self.get_success_headers(task.data)
+        return response.Created(task.data, headers=headers)
+
+    @detail_route(methods=['post'])
+    @method_decorator(atomic)
+    def issue(self, request, *args, **kwargs):
+        project = self.get_object_or_none()
+        self.check_permissions(request, 'import_item', project)
+
+        signals.pre_save.disconnect(sender=Issue,
+                                    dispatch_uid="set_finished_date_when_edit_issue")
+
+        issue = services.store.store_issue(project, request.DATA.copy())
+
+        errors = services.store.get_errors()
+        if errors:
+            raise exc.BadRequest(errors)
+
+        headers = self.get_success_headers(issue.data)
+        return response.Created(issue.data, headers=headers)
+
+    @detail_route(methods=['post'])
+    @method_decorator(atomic)
+    def wiki_page(self, request, *args, **kwargs):
+        project = self.get_object_or_none()
+        self.check_permissions(request, 'import_item', project)
+
+        wiki_page = services.store.store_wiki_page(project, request.DATA.copy())
+
+        errors = services.store.get_errors()
+        if errors:
+            raise exc.BadRequest(errors)
+
+        headers = self.get_success_headers(wiki_page.data)
+        return response.Created(wiki_page.data, headers=headers)
+
+    @detail_route(methods=['post'])
+    @method_decorator(atomic)
+    def wiki_link(self, request, *args, **kwargs):
+        project = self.get_object_or_none()
+        self.check_permissions(request, 'import_item', project)
+
+        wiki_link = services.store.store_wiki_link(project, request.DATA.copy())
+
+        errors = services.store.get_errors()
+        if errors:
+            raise exc.BadRequest(errors)
+
+        headers = self.get_success_headers(wiki_link.data)
+        return response.Created(wiki_link.data, headers=headers)
 
     @list_route(methods=["POST"])
     @method_decorator(atomic)
@@ -204,109 +315,43 @@ class ProjectImporterViewSet(mixins.ImportThrottlingPolicyMixin, CreateModelMixi
         except Exception:
             raise exc.WrongArguments(_("Invalid dump format"))
 
-        if Project.objects.filter(slug=dump['slug']).exists():
+        slug = dump.get('slug', None)
+        if slug is not None and Project.objects.filter(slug=slug).exists():
             del dump['slug']
 
+        user = request.user
+        dump['owner'] = user.email
+
+        # Validate if the project can be imported
+        is_private = dump.get("is_private", False)
+        total_memberships = len([m for m in dump.get("memberships", [])
+                                            if m.get("email", None) != dump["owner"]])
+        total_memberships = total_memberships + 1 # 1 is the owner
+        (enough_slots, error_message) = users_services.has_available_slot_for_import_new_project(
+            user,
+            is_private,
+            total_memberships
+        )
+        if not enough_slots:
+            raise exc.NotEnoughSlotsForProject(is_private, total_memberships, error_message)
+
+        # Async mode
         if settings.CELERY_ENABLED:
-            task = tasks.load_project_dump.delay(request.user, dump)
+            task = tasks.load_project_dump.delay(user, dump)
             return response.Accepted({"import_id": task.id})
 
-        project = dump_service.dict_to_project(dump, request.user.email)
-        response_data = ProjectSerializer(project).data
-        return response.Created(response_data)
+        # Sync mode
+        try:
+            project = services.store_project_from_dict(dump, request.user)
+        except err.TaigaImportError as e:
+            # On Error
+            ## remove project
+            if e.project:
+                e.project.delete_related_content()
+                e.project.delete()
 
-    @detail_route(methods=['post'])
-    @method_decorator(atomic)
-    def issue(self, request, *args, **kwargs):
-        project = self.get_object_or_none()
-        self.check_permissions(request, 'import_item', project)
-
-        signals.pre_save.disconnect(sender=Issue,
-                                    dispatch_uid="set_finished_date_when_edit_issue")
-
-        issue = service.store_issue(project, request.DATA.copy())
-
-        errors = service.get_errors()
-        if errors:
-            raise exc.BadRequest(errors)
-
-        headers = self.get_success_headers(issue.data)
-        return response.Created(issue.data, headers=headers)
-
-    @detail_route(methods=['post'])
-    @method_decorator(atomic)
-    def task(self, request, *args, **kwargs):
-        project = self.get_object_or_none()
-        self.check_permissions(request, 'import_item', project)
-
-        signals.pre_save.disconnect(sender=Task,
-                                    dispatch_uid="set_finished_date_when_edit_task")
-
-        task = service.store_task(project, request.DATA.copy())
-
-        errors = service.get_errors()
-        if errors:
-            raise exc.BadRequest(errors)
-
-        headers = self.get_success_headers(task.data)
-        return response.Created(task.data, headers=headers)
-
-    @detail_route(methods=['post'])
-    @method_decorator(atomic)
-    def us(self, request, *args, **kwargs):
-        project = self.get_object_or_none()
-        self.check_permissions(request, 'import_item', project)
-
-        us = service.store_user_story(project, request.DATA.copy())
-
-        errors = service.get_errors()
-        if errors:
-            raise exc.BadRequest(errors)
-
-        headers = self.get_success_headers(us.data)
-        return response.Created(us.data, headers=headers)
-
-    @detail_route(methods=['post'])
-    @method_decorator(atomic)
-    def milestone(self, request, *args, **kwargs):
-        project = self.get_object_or_none()
-        self.check_permissions(request, 'import_item', project)
-
-        milestone = service.store_milestone(project, request.DATA.copy())
-
-        errors = service.get_errors()
-        if errors:
-            raise exc.BadRequest(errors)
-
-        headers = self.get_success_headers(milestone.data)
-        return response.Created(milestone.data, headers=headers)
-
-    @detail_route(methods=['post'])
-    @method_decorator(atomic)
-    def wiki_page(self, request, *args, **kwargs):
-        project = self.get_object_or_none()
-        self.check_permissions(request, 'import_item', project)
-
-        wiki_page = service.store_wiki_page(project, request.DATA.copy())
-
-        errors = service.get_errors()
-        if errors:
-            raise exc.BadRequest(errors)
-
-        headers = self.get_success_headers(wiki_page.data)
-        return response.Created(wiki_page.data, headers=headers)
-
-    @detail_route(methods=['post'])
-    @method_decorator(atomic)
-    def wiki_link(self, request, *args, **kwargs):
-        project = self.get_object_or_none()
-        self.check_permissions(request, 'import_item', project)
-
-        wiki_link = service.store_wiki_link(project, request.DATA.copy())
-
-        errors = service.get_errors()
-        if errors:
-            raise exc.BadRequest(errors)
-
-        headers = self.get_success_headers(wiki_link.data)
-        return response.Created(wiki_link.data, headers=headers)
+            return response.BadRequest({"error": e.message, "details": e.errors})
+        else:
+            # On Success
+            response_data = ProjectSerializer(project).data
+            return response.Created(response_data)

@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -17,23 +18,21 @@
 # Examples:
 # python manage.py rebuild_timeline_for_user_creation --settings=settings.local_timeline
 
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
 from django.db.models import Model
-from django.db import reset_queries
 from django.test.utils import override_settings
 
 from taiga.timeline.service import (_get_impl_key_from_model,
     _timeline_impl_map, extract_user_info)
 from taiga.timeline.models import Timeline
 from taiga.timeline.signals import _push_to_timelines
-from taiga.users.models import User
 
 from unittest.mock import patch
 
 import gc
+
 
 class BulkCreator(object):
     def __init__(self):
@@ -74,7 +73,7 @@ def custom_add_to_object_timeline(obj:object, instance:object, event_type:str, c
 def generate_timeline():
     with patch('taiga.timeline.service._add_to_object_timeline', new=custom_add_to_object_timeline):
         # Users api wasn't a HistoryResourceMixin so we can't interate on the HistoryEntries in this case
-        users = User.objects.order_by("date_joined")
+        users = get_user_model().objects.order_by("date_joined")
         for user in users.iterator():
             print("User:", user.date_joined)
             extra_data = {
@@ -85,6 +84,7 @@ def generate_timeline():
             del extra_data
 
     bulk_creator.flush()
+
 
 class Command(BaseCommand):
     help = 'Regenerate project timeline'

@@ -1,7 +1,8 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Anler Hernández <hello@anler.me>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Anler Hernández <hello@anler.me>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -32,7 +33,7 @@ def test_update_milestone_with_userstories_list(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
     role = f.RoleFactory.create(project=project)
-    f.MembershipFactory.create(project=project, user=user, role=role, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, role=role, is_admin=True)
     sprint = f.MilestoneFactory.create(project=project, owner=user)
     f.PointsFactory.create(project=project, value=None)
     us = f.UserStoryFactory.create(project=project, owner=user)
@@ -53,7 +54,7 @@ def test_list_milestones_taiga_info_headers(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
     role = f.RoleFactory.create(project=project)
-    f.MembershipFactory.create(project=project, user=user, role=role, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, role=role, is_admin=True)
 
     f.MilestoneFactory.create(project=project, owner=user, closed=True)
     f.MilestoneFactory.create(project=project, owner=user, closed=True)

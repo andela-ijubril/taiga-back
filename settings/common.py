@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -29,7 +30,7 @@ DEBUG = False
 
 DATABASES = {
     "default": {
-        "ENGINE": "transaction_hooks.backends.postgresql_psycopg2",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": "taiga",
     }
 }
@@ -138,12 +139,12 @@ LANGUAGES = [
     #("sq", "Shqip"),  # Albanian
     #("sr", "Српски"),  # Serbian
     #("sr-latn", "srpski"),  # Serbian Latin
-    #("sv", "Svenska"),  # Swedish
+    ("sv", "Svenska"),  # Swedish
     #("sw", "Kiswahili"),  # Swahili
     #("ta", "தமிழ்"),  # Tamil
     #("te", "తెలుగు"),  # Telugu
     #("th", "ภาษาไทย"),  # Thai
-    #("tr", "Türkçe"),  # Turkish
+    ("tr", "Türkçe"),  # Turkish
     #("tt", "татар теле"),  # Tatar
     #("udm", "удмурт кыл"),  # Udmurt
     #("uk", "Українська"),  # Ukrainian
@@ -319,7 +320,6 @@ INSTALLED_APPS = [
     "sr",
     "easy_thumbnails",
     "raven.contrib.django.raven_compat",
-    "django_transactional_cleanup",
 ]
 
 WSGI_APPLICATION = "taiga.wsgi.application"
@@ -346,7 +346,7 @@ LOGGING = {
     "handlers": {
         "null": {
             "level":"DEBUG",
-            "class":"django.utils.log.NullHandler",
+            "class":"logging.NullHandler",
         },
         "console":{
             "level":"DEBUG",
@@ -433,7 +433,9 @@ REST_FRAMEWORK = {
 # Extra expose header related to Taiga APP (see taiga.base.middleware.cors=)
 APP_EXTRA_EXPOSE_HEADERS = [
     "taiga-info-total-opened-milestones",
-    "taiga-info-total-closed-milestones"
+    "taiga-info-total-closed-milestones",
+    "taiga-info-project-memberships",
+    "taiga-info-project-is-private"
 ]
 
 DEFAULT_PROJECT_TEMPLATE = "scrum"
@@ -445,21 +447,38 @@ SOUTH_MIGRATION_MODULES = {
     'easy_thumbnails': 'easy_thumbnails.south_migrations',
 }
 
-DEFAULT_AVATAR_SIZE = 80                # 80x80 pixels
-DEFAULT_BIG_AVATAR_SIZE = 300           # 300x300 pixels
-DEFAULT_TIMELINE_IMAGE_SIZE = 640       # 640x??? pixels
+
+
+
+THN_AVATAR_SIZE = 80                # 80x80 pixels
+THN_AVATAR_BIG_SIZE = 300           # 300x300 pixels
+THN_LOGO_SMALL_SIZE = 80            # 80x80 pixels
+THN_LOGO_BIG_SIZE = 300             # 300x300 pixels
+THN_TIMELINE_IMAGE_SIZE = 640       # 640x??? pixels
+THN_CARD_IMAGE_WIDTH = 300          # 300 pixels
+THN_CARD_IMAGE_HEIGHT = 200         # 200 pixels
+
+THN_AVATAR_SMALL = "avatar"
+THN_AVATAR_BIG = "big-avatar"
+THN_LOGO_SMALL = "logo-small"
+THN_LOGO_BIG = "logo-big"
+THN_ATTACHMENT_TIMELINE = "timeline-image"
+THN_ATTACHMENT_CARD = "card-image"
 
 THUMBNAIL_ALIASES = {
-    '': {
-        'avatar': {'size': (DEFAULT_AVATAR_SIZE, DEFAULT_AVATAR_SIZE), 'crop': True},
-        'big-avatar': {'size': (DEFAULT_BIG_AVATAR_SIZE, DEFAULT_BIG_AVATAR_SIZE), 'crop': True},
-        'timeline-image': {'size': (DEFAULT_TIMELINE_IMAGE_SIZE, 0), 'crop': True},
+    "": {
+        THN_AVATAR_SMALL: {"size": (THN_AVATAR_SIZE, THN_AVATAR_SIZE), "crop": True},
+        THN_AVATAR_BIG: {"size": (THN_AVATAR_BIG_SIZE, THN_AVATAR_BIG_SIZE), "crop": True},
+        THN_LOGO_SMALL: {"size": (THN_LOGO_SMALL_SIZE, THN_LOGO_SMALL_SIZE), "crop": True},
+        THN_LOGO_BIG: {"size": (THN_LOGO_BIG_SIZE, THN_LOGO_BIG_SIZE), "crop": True},
+        THN_ATTACHMENT_TIMELINE: {"size": (THN_TIMELINE_IMAGE_SIZE, 0), "crop": True},
+        THN_ATTACHMENT_CARD: {"size": (THN_CARD_IMAGE_WIDTH, THN_CARD_IMAGE_HEIGHT), "crop": True},
     },
 }
 
 # GRAVATAR_DEFAULT_AVATAR = "img/user-noimage.png"
 GRAVATAR_DEFAULT_AVATAR = ""
-GRAVATAR_AVATAR_SIZE = DEFAULT_AVATAR_SIZE
+GRAVATAR_AVATAR_SIZE = THN_AVATAR_SIZE
 
 TAGS_PREDEFINED_COLORS = ["#fce94f", "#edd400", "#c4a000", "#8ae234",
                           "#73d216", "#4e9a06", "#d3d7cf", "#fcaf3e",
@@ -490,7 +509,8 @@ PROJECT_MODULES_CONFIGURATORS = {
     "bitbucket": "taiga.hooks.bitbucket.services.get_or_generate_config",
 }
 
-BITBUCKET_VALID_ORIGIN_IPS = ["131.103.20.165", "131.103.20.166"]
+BITBUCKET_VALID_ORIGIN_IPS = ["131.103.20.165", "131.103.20.166", "104.192.143.192/28", "104.192.143.208/28"]
+
 GITLAB_VALID_ORIGIN_IPS = []
 
 EXPORTS_TTL = 60 * 60 * 24  # 24 hours
@@ -503,6 +523,12 @@ WEBHOOKS_ENABLED = False
 FRONT_SITEMAP_ENABLED = False
 FRONT_SITEMAP_CACHE_TIMEOUT = 24*60*60  # In second
 
+EXTRA_BLOCKING_CODES = []
+
+MAX_PRIVATE_PROJECTS_PER_USER = None # None == no limit
+MAX_PUBLIC_PROJECTS_PER_USER = None # None == no limit
+MAX_MEMBERSHIPS_PRIVATE_PROJECTS = None # None == no limit
+MAX_MEMBERSHIPS_PUBLIC_PROJECTS = None # None == no limit
 
 from .sr import *
 

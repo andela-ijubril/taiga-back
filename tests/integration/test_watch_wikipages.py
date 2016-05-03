@@ -1,7 +1,8 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Anler Hernández <hello@anler.me>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Anler Hernández <hello@anler.me>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -27,7 +28,7 @@ pytestmark = pytest.mark.django_db
 def test_watch_wikipage(client):
     user = f.UserFactory.create()
     wikipage = f.WikiPageFactory(owner=user)
-    f.MembershipFactory.create(project=wikipage.project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=wikipage.project, user=user, is_admin=True)
     url = reverse("wiki-watch", args=(wikipage.id,))
 
     client.login(user)
@@ -39,7 +40,7 @@ def test_watch_wikipage(client):
 def test_unwatch_wikipage(client):
     user = f.UserFactory.create()
     wikipage = f.WikiPageFactory(owner=user)
-    f.MembershipFactory.create(project=wikipage.project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=wikipage.project, user=user, is_admin=True)
     url = reverse("wiki-watch", args=(wikipage.id,))
 
     client.login(user)
@@ -51,7 +52,7 @@ def test_unwatch_wikipage(client):
 def test_list_wikipage_watchers(client):
     user = f.UserFactory.create()
     wikipage = f.WikiPageFactory(owner=user)
-    f.MembershipFactory.create(project=wikipage.project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=wikipage.project, user=user, is_admin=True)
     f.WatchedFactory.create(content_object=wikipage, user=user)
     url = reverse("wiki-watchers-list", args=(wikipage.id,))
 
@@ -65,7 +66,7 @@ def test_list_wikipage_watchers(client):
 def test_get_wikipage_watcher(client):
     user = f.UserFactory.create()
     wikipage = f.WikiPageFactory(owner=user)
-    f.MembershipFactory.create(project=wikipage.project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=wikipage.project, user=user, is_admin=True)
     watch = f.WatchedFactory.create(content_object=wikipage, user=user)
     url = reverse("wiki-watchers-detail", args=(wikipage.id, watch.user.id))
 
@@ -79,7 +80,7 @@ def test_get_wikipage_watcher(client):
 def test_get_wikipage_watchers(client):
     user = f.UserFactory.create()
     wikipage = f.WikiPageFactory(owner=user)
-    f.MembershipFactory.create(project=wikipage.project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=wikipage.project, user=user, is_admin=True)
     url = reverse("wiki-detail", args=(wikipage.id,))
 
     f.WatchedFactory.create(content_object=wikipage, user=user)
@@ -94,7 +95,7 @@ def test_get_wikipage_watchers(client):
 def test_get_wikipage_is_watcher(client):
     user = f.UserFactory.create()
     wikipage = f.WikiPageFactory(owner=user)
-    f.MembershipFactory.create(project=wikipage.project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=wikipage.project, user=user, is_admin=True)
     url_detail = reverse("wiki-detail", args=(wikipage.id,))
     url_watch = reverse("wiki-watch", args=(wikipage.id,))
     url_unwatch = reverse("wiki-unwatch", args=(wikipage.id,))

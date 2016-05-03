@@ -1,7 +1,8 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Anler Hernández <hello@anler.me>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Anler Hernández <hello@anler.me>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -17,19 +18,18 @@
 
 from unittest.mock import patch, call
 
-from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 
 from taiga.timeline import service
 from taiga.timeline.models import Timeline
 from taiga.projects.models import Project
-from taiga.users.models import User
 
 import pytest
 
 
 def test_push_to_timeline_many_objects():
     with patch("taiga.timeline.service._add_to_object_timeline") as mock:
-        users = [User(), User(), User()]
+        users = [get_user_model(), get_user_model(), get_user_model()]
         project = Project()
         service.push_to_timeline(users, project, "test", project.created_date)
         assert mock.call_count == 3
@@ -44,7 +44,7 @@ def test_push_to_timeline_many_objects():
 
 def test_add_to_objects_timeline():
     with patch("taiga.timeline.service._add_to_object_timeline") as mock:
-        users = [User(), User(), User()]
+        users = [get_user_model(), get_user_model(), get_user_model()]
         project = Project()
         service._add_to_objects_timeline(users, project, "test", project.created_date)
         assert mock.call_count == 3

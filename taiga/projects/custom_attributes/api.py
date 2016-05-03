@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -18,6 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from taiga.base.api import ModelCrudViewSet
 from taiga.base.api import ModelUpdateRetrieveViewSet
+from taiga.base.api.mixins import BlockedByProjectMixin
 from taiga.base import exceptions as exc
 from taiga.base import filters
 from taiga.base import response
@@ -37,7 +39,7 @@ from . import services
 # Custom Attribute ViewSets
 #######################################################
 
-class UserStoryCustomAttributeViewSet(BulkUpdateOrderMixin, ModelCrudViewSet):
+class UserStoryCustomAttributeViewSet(BulkUpdateOrderMixin, BlockedByProjectMixin, ModelCrudViewSet):
     model = models.UserStoryCustomAttribute
     serializer_class = serializers.UserStoryCustomAttributeSerializer
     permission_classes = (permissions.UserStoryCustomAttributePermission,)
@@ -48,7 +50,7 @@ class UserStoryCustomAttributeViewSet(BulkUpdateOrderMixin, ModelCrudViewSet):
     bulk_update_order_action = services.bulk_update_userstory_custom_attribute_order
 
 
-class TaskCustomAttributeViewSet(BulkUpdateOrderMixin, ModelCrudViewSet):
+class TaskCustomAttributeViewSet(BulkUpdateOrderMixin, BlockedByProjectMixin, ModelCrudViewSet):
     model = models.TaskCustomAttribute
     serializer_class = serializers.TaskCustomAttributeSerializer
     permission_classes = (permissions.TaskCustomAttributePermission,)
@@ -59,7 +61,7 @@ class TaskCustomAttributeViewSet(BulkUpdateOrderMixin, ModelCrudViewSet):
     bulk_update_order_action = services.bulk_update_task_custom_attribute_order
 
 
-class IssueCustomAttributeViewSet(BulkUpdateOrderMixin, ModelCrudViewSet):
+class IssueCustomAttributeViewSet(BulkUpdateOrderMixin, BlockedByProjectMixin, ModelCrudViewSet):
     model = models.IssueCustomAttribute
     serializer_class = serializers.IssueCustomAttributeSerializer
     permission_classes = (permissions.IssueCustomAttributePermission,)
@@ -75,7 +77,7 @@ class IssueCustomAttributeViewSet(BulkUpdateOrderMixin, ModelCrudViewSet):
 #######################################################
 
 class BaseCustomAttributesValuesViewSet(OCCResourceMixin, HistoryResourceMixin, WatchedResourceMixin,
-                                        ModelUpdateRetrieveViewSet):
+                                        BlockedByProjectMixin, ModelUpdateRetrieveViewSet):
     def get_object_for_snapshot(self, obj):
         return getattr(obj, self.content_object)
 

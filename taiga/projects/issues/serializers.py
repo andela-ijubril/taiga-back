@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -45,14 +46,18 @@ class IssueSerializer(WatchersValidator, VoteResourceSerializerMixin, EditableWa
 
     class Meta:
         model = models.Issue
-        read_only_fields = ('id', 'ref', 'created_date', 'modified_date')
+        read_only_fields = ('id', 'ref', 'created_date', 'modified_date', 'owner')
 
     def get_comment(self, obj):
         # NOTE: This method and field is necessary to historical comments work
         return ""
 
     def get_generated_user_stories(self, obj):
-        return obj.generated_user_stories.values("id", "ref", "subject")
+        return [{
+            "id": us.id,
+            "ref": us.ref,
+            "subject": us.subject,
+        } for us in obj.generated_user_stories.all()]
 
     def get_blocked_note_html(self, obj):
         return mdrender(obj.project, obj.blocked_note)
@@ -77,7 +82,9 @@ class IssueListSerializer(IssueSerializer):
 
 class IssueNeighborsSerializer(NeighborsSerializerMixin, IssueSerializer):
     def serialize_neighbor(self, neighbor):
-        return NeighborIssueSerializer(neighbor).data
+        if neighbor:
+            return NeighborIssueSerializer(neighbor).data
+        return None
 
 
 class NeighborIssueSerializer(serializers.ModelSerializer):

@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -16,6 +17,7 @@
 
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
+from django.contrib.admin import TabularInline
 
 from . import models
 
@@ -23,3 +25,10 @@ from . import models
 class WatchedInline(GenericTabularInline):
     model = models.Watched
     extra = 0
+    raw_id_fields = ["project", "user"]
+
+class NotifyPolicyInline(TabularInline):
+    model = models.NotifyPolicy
+    extra = 0
+    readonly_fields = ("notify_level",)
+    raw_id_fields = ["user"]

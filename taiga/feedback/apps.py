@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -19,8 +20,6 @@ from django.apps import apps
 from django.conf import settings
 from django.conf.urls import include, url
 
-from .routers import router
-
 
 class FeedbackAppConfig(AppConfig):
     name = "taiga.feedback"
@@ -29,4 +28,5 @@ class FeedbackAppConfig(AppConfig):
     def ready(self):
         if settings.FEEDBACK_ENABLED:
             from taiga.urls import urlpatterns
+            from .routers import router
             urlpatterns.append(url(r'^api/v1/', include(router.urls)))

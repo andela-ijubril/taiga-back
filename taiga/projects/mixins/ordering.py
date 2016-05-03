@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -53,6 +54,8 @@ class BulkUpdateOrderMixin:
         project = get_object_or_404(Project, id=project_id)
 
         self.check_permissions(request, 'bulk_update_order', project)
-
+        if project.blocked_code is not None:
+            raise exc.Blocked(_("Blocked element"))
+            
         self.__class__.bulk_update_order_action(project, request.user, bulk_data)
         return response.NoContent(data=None)

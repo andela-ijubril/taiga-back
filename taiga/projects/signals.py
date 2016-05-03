@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -20,6 +21,8 @@ from django.conf import settings
 from taiga.projects.services.tags_colors import update_project_tags_colors_handler, remove_unused_tags
 from taiga.projects.notifications.services import create_notify_policy_if_not_exists
 from taiga.base.utils.db import get_typename_for_model_class
+
+from easy_thumbnails.files import get_thumbnailer
 
 
 ####################################
@@ -45,10 +48,14 @@ def membership_post_delete(sender, instance, using, **kwargs):
     instance.project.update_role_points()
 
 
+## Notify policy
+
 def create_notify_policy(sender, instance, using, **kwargs):
     if instance.user:
         create_notify_policy_if_not_exists(instance.project, instance.user)
 
+
+## Project attributes
 
 def project_post_save(sender, instance, created, **kwargs):
     """
@@ -78,8 +85,10 @@ def project_post_save(sender, instance, created, **kwargs):
     if owner_role:
         Membership = apps.get_model("projects", "Membership")
         Membership.objects.create(user=instance.owner, project=instance, role=owner_role,
-                                  is_owner=True, email=instance.owner.email)
+                                  is_admin=True, email=instance.owner.email)
 
+
+## US statuses
 
 def try_to_close_or_open_user_stories_when_edit_us_status(sender, instance, created, **kwargs):
     from taiga.projects.userstories import services
@@ -90,6 +99,8 @@ def try_to_close_or_open_user_stories_when_edit_us_status(sender, instance, crea
         else:
             services.open_userstory(user_story)
 
+
+## Task statuses
 
 def try_to_close_or_open_user_stories_when_edit_task_status(sender, instance, created, **kwargs):
     from taiga.projects.userstories import services

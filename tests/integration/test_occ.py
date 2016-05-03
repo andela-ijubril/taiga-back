@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -29,7 +30,7 @@ pytestmark = pytest.mark.django_db
 def test_valid_us_creation(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
 
     client.login(user)
 
@@ -46,7 +47,7 @@ def test_valid_us_creation(client):
 def test_invalid_concurrent_save_for_issue(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.issues.api.IssueViewSet.pre_conditions_on_save"
@@ -75,7 +76,7 @@ def test_invalid_concurrent_save_for_issue(client):
 def test_valid_concurrent_save_for_issue_different_versions(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.issues.api.IssueViewSet.pre_conditions_on_save"
@@ -104,7 +105,7 @@ def test_valid_concurrent_save_for_issue_different_versions(client):
 def test_valid_concurrent_save_for_issue_different_fields(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.issues.api.IssueViewSet.pre_conditions_on_save"
@@ -133,7 +134,7 @@ def test_valid_concurrent_save_for_issue_different_fields(client):
 def test_invalid_concurrent_save_for_wiki_page(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.wiki.api.WikiViewSet.pre_conditions_on_save"
@@ -157,7 +158,7 @@ def test_invalid_concurrent_save_for_wiki_page(client):
 def test_valid_concurrent_save_for_wiki_page_different_versions(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.wiki.api.WikiViewSet.pre_conditions_on_save"
@@ -181,7 +182,7 @@ def test_valid_concurrent_save_for_wiki_page_different_versions(client):
 def test_invalid_concurrent_save_for_us(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     f.UserStoryFactory.create(version=10, project=project)
     client.login(user)
 
@@ -208,7 +209,7 @@ def test_invalid_concurrent_save_for_us(client):
 def test_valid_concurrent_save_for_us_different_versions(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.userstories.api.UserStoryViewSet.pre_conditions_on_save"
@@ -234,7 +235,7 @@ def test_valid_concurrent_save_for_us_different_versions(client):
 def test_valid_concurrent_save_for_us_different_fields(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.userstories.api.UserStoryViewSet.pre_conditions_on_save"
@@ -260,7 +261,7 @@ def test_valid_concurrent_save_for_us_different_fields(client):
 def test_invalid_concurrent_save_for_task(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.tasks.api.TaskViewSet.pre_conditions_on_save"
@@ -286,7 +287,7 @@ def test_invalid_concurrent_save_for_task(client):
 def test_valid_concurrent_save_for_task_different_versions(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.tasks.api.TaskViewSet.pre_conditions_on_save"
@@ -312,7 +313,7 @@ def test_valid_concurrent_save_for_task_different_versions(client):
 def test_valid_concurrent_save_for_task_different_fields(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.tasks.api.TaskViewSet.pre_conditions_on_save"
@@ -339,7 +340,7 @@ def test_valid_concurrent_save_for_task_different_fields(client):
 def test_invalid_save_without_version_parameter(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
-    f.MembershipFactory.create(project=project, user=user, is_owner=True)
+    f.MembershipFactory.create(project=project, user=user, is_admin=True)
     client.login(user)
 
     mock_path = "taiga.projects.tasks.api.TaskViewSet.pre_conditions_on_save"

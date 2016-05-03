@@ -1,7 +1,8 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
-# Copyright (C) 2014-2015 Anler Hernández <hello@anler.me>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
+# Copyright (C) 2014-2016 Anler Hernández <hello@anler.me>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -143,10 +144,7 @@ def test_update_entries(client):
     assert response.status_code == 404
     response = client.json.put(reverse("user-storage-detail", args=[form["key"]]),
                                json.dumps(form))
-    assert response.status_code == 201
-    response = client.json.get(reverse("user-storage-detail", args=[form["key"]]))
-    assert response.status_code == 200
-    assert response.data["value"] == form["value"]
+    assert response.status_code == 404
 
 
 def test_delete_storage_entry(client):

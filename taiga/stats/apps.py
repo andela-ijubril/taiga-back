@@ -1,4 +1,4 @@
-# Copyright (C) 2014-2015 Taiga Agile LLC <support@taiga.io>
+# Copyright (C) 2014-2016 Taiga Agile LLC <support@taiga.io>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -14,7 +14,6 @@
 
 from django.apps import AppConfig
 from django.apps import apps
-from django.conf import settings
 from django.conf.urls import include, url
 
 from .routers import router
@@ -25,6 +24,5 @@ class StatsAppConfig(AppConfig):
     verbose_name = "Stats"
 
     def ready(self):
-        if settings.STATS_ENABLED:
-            from taiga.urls import urlpatterns
-            urlpatterns.append(url(r'^api/v1/', include(router.urls)))
+        from taiga.urls import urlpatterns
+        urlpatterns.append(url(r'^api/v1/', include(router.urls)))

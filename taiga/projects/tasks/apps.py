@@ -1,6 +1,7 @@
-# Copyright (C) 2014-2015 Andrey Antukh <niwi@niwi.be>
-# Copyright (C) 2014-2015 Jesús Espino <jespinog@gmail.com>
-# Copyright (C) 2014-2015 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
+# Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
+# Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
+# Copyright (C) 2014-2016 Alejandro Alonso <alejandro.alonso@kaleidos.net>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
@@ -18,11 +19,10 @@ from django.apps import AppConfig
 from django.apps import apps
 from django.db.models import signals
 
-from taiga.projects import signals as generic_handlers
-from taiga.projects.custom_attributes import signals as custom_attributes_handlers
-from . import signals as handlers
 
 def connect_tasks_signals():
+    from taiga.projects import signals as generic_handlers
+    from . import signals as handlers
     # Finished date
     signals.pre_save.connect(handlers.set_finished_date_when_edit_task,
                              sender=apps.get_model("tasks", "Task"),
@@ -39,6 +39,7 @@ def connect_tasks_signals():
                                 dispatch_uid="update_project_tags_when_delete_tagglabe_item_task")
 
 def connect_tasks_close_or_open_us_and_milestone_signals():
+    from . import signals as handlers
     # Cached prev object version
     signals.pre_save.connect(handlers.cached_prev_task,
                              sender=apps.get_model("tasks", "Task"),
@@ -52,6 +53,7 @@ def connect_tasks_close_or_open_us_and_milestone_signals():
                                 dispatch_uid="try_to_close_or_open_us_and_milestone_when_delete_task")
 
 def connect_tasks_custom_attributes_signals():
+    from taiga.projects.custom_attributes import signals as custom_attributes_handlers
     signals.post_save.connect(custom_attributes_handlers.create_custom_attribute_value_when_create_task,
                               sender=apps.get_model("tasks", "Task"),
                               dispatch_uid="create_custom_attribute_value_when_create_task")
