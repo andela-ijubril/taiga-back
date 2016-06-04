@@ -126,7 +126,6 @@ class TagsColorsField(serializers.WritableField):
         return list(data.items())
 
 
-
 class WatchersField(serializers.WritableField):
     def to_native(self, obj):
         return obj

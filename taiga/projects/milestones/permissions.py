@@ -33,6 +33,7 @@ class MilestonePermission(TaigaResourcePermission):
     watch_perms = IsAuthenticated() & HasProjectPerm('view_milestones')
     unwatch_perms = IsAuthenticated() & HasProjectPerm('view_milestones')
 
+
 class MilestoneWatchersPermission(TaigaResourcePermission):
     enought_perms = IsProjectAdmin() | IsSuperUser()
     global_perms = None

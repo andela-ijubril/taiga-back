@@ -59,7 +59,6 @@ import re
 register = template.Library()
 
 
-
 @register.tag("static")
 def do_static(parser, token):
     return StaticFilesNode.handle_token(parser, token)

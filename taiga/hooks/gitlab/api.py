@@ -29,6 +29,7 @@ from . import event_hooks
 from netaddr import all_matching_cidrs
 from netaddr.core import AddrFormatError
 
+
 class GitLabViewSet(BaseWebhookApiViewSet):
     event_hook_classes = {
         "push": event_hooks.PushEventHook,

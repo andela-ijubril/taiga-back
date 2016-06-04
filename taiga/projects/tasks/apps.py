@@ -38,6 +38,7 @@ def connect_tasks_signals():
                                 sender=apps.get_model("tasks", "Task"),
                                 dispatch_uid="update_project_tags_when_delete_tagglabe_item_task")
 
+
 def connect_tasks_close_or_open_us_and_milestone_signals():
     from . import signals as handlers
     # Cached prev object version
@@ -51,6 +52,7 @@ def connect_tasks_close_or_open_us_and_milestone_signals():
     signals.post_delete.connect(handlers.try_to_close_or_open_us_and_milestone_when_delete_task,
                                 sender=apps.get_model("tasks", "Task"),
                                 dispatch_uid="try_to_close_or_open_us_and_milestone_when_delete_task")
+
 
 def connect_tasks_custom_attributes_signals():
     from taiga.projects.custom_attributes import signals as custom_attributes_handlers

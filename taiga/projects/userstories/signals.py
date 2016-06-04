@@ -74,6 +74,7 @@ def try_to_close_or_open_us_and_milestone_when_create_or_edit_us(sender, instanc
     _try_to_close_or_open_us_when_create_or_edit_us(instance)
     _try_to_close_or_open_milestone_when_create_or_edit_us(instance)
 
+
 def try_to_close_milestone_when_delete_us(sender, instance, **kwargs):
     if instance._importing:
         return

@@ -315,6 +315,7 @@ def _store_role_point(project, us, role_point):
     add_errors("role_points", serialized.errors)
     return None
 
+
 def store_user_story(project, data):
     if "status" not in data and project.default_us_status:
         data["status"] = project.default_us_status.name

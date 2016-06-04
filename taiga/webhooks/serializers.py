@@ -90,6 +90,7 @@ class UserSerializer(serializers.Serializer):
     def get_photo(self, obj):
         return get_photo_or_gravatar_url(obj)
 
+
 ########################################################################
 ## Project
 ########################################################################

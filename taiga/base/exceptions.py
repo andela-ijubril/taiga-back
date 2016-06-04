@@ -223,6 +223,7 @@ class NotEnoughSlotsForProject(BaseException):
             "total_memberships": total_memberships
         }
 
+
 def format_exception(exc):
     if isinstance(exc.detail, (dict, list, tuple,)):
         detail = exc.detail

@@ -39,7 +39,6 @@ from taiga.projects.notifications.services import get_projects_watched
 from .gravatar import get_gravatar_url
 
 
-
 def get_user_by_username_or_email(username_or_email):
     user_model = get_user_model()
     qs = user_model.objects.filter(Q(username__iexact=username_or_email) |

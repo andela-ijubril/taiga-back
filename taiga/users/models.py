@@ -253,7 +253,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self._cached_notify_levels.get(project.id, None)
 
     def get_short_name(self):
-        "Returns the short name for the user."
+        """Returns the short name for the user."""
         return self.username
 
     def get_full_name(self):

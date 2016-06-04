@@ -23,6 +23,7 @@ from django.utils import timezone
 # Signals for cached prev task
 ####################################
 
+
 # Define the previous version of the task for use it on the post_save handler
 def cached_prev_task(sender, instance, **kwargs):
     instance.prev = None
@@ -37,6 +38,7 @@ def cached_prev_task(sender, instance, **kwargs):
 def try_to_close_or_open_us_and_milestone_when_create_or_edit_task(sender, instance, created, **kwargs):
     _try_to_close_or_open_us_when_create_or_edit_task(instance)
     _try_to_close_or_open_milestone_when_create_or_edit_task(instance)
+
 
 def try_to_close_or_open_us_and_milestone_when_delete_task(sender, instance, **kwargs):
     _try_to_close_or_open_us_when_delete_task(instance)
@@ -98,6 +100,7 @@ def _try_to_close_milestone_when_delete_task(instance):
 ####################################
 # Signals for set finished date
 ####################################
+
 
 def set_finished_date_when_edit_task(sender, instance, **kwargs):
     if instance.status is None:

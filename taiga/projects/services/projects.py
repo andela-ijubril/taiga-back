@@ -23,6 +23,7 @@ ERROR_MAX_PRIVATE_PROJECTS_MEMBERSHIPS = 'max_private_projects_memberships'
 ERROR_MAX_PUBLIC_PROJECTS = 'max_public_projects'
 ERROR_MAX_PRIVATE_PROJECTS = 'max_private_projects'
 
+
 def check_if_project_privacity_can_be_changed(project):
     """Return if the project privacity can be changed from private to public or viceversa.
 

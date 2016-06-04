@@ -23,7 +23,7 @@ from taiga.users.services import get_photo_or_gravatar_url
 from . import models
 
 
-HISTORY_ENTRY_I18N_FIELDS=("points", "status", "severity", "priority", "type")
+HISTORY_ENTRY_I18N_FIELDS = ("points", "status", "severity", "priority", "type")
 
 
 class HistoryEntrySerializer(serializers.ModelSerializer):

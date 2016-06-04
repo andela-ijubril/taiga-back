@@ -150,7 +150,7 @@ class Command(BaseCommand):
             project = self.create_project(
                 x,
                 is_private=(x in [2, 4] or self.sd.boolean()),
-                blocked_code = BLOCKED_BY_STAFF if x in(blocked_projects_range) else None
+                blocked_code=BLOCKED_BY_STAFF if x in(blocked_projects_range) else None
             )
 
             # added memberships
@@ -252,7 +252,6 @@ class Command(BaseCommand):
             project.save()
 
             self.create_likes(project)
-
 
     def create_attachment(self, obj, order):
         attached_file = self.sd.file_from_directory(*ATTACHMENT_SAMPLE_DATA)
@@ -436,7 +435,6 @@ class Command(BaseCommand):
                                                                      user__isnull=False)).user
             us.save()
 
-
         take_snapshot(us,
                       comment=self.sd.paragraph(),
                       user=us.owner)
@@ -523,7 +521,7 @@ class Command(BaseCommand):
 
     def create_likes(self, obj):
         for i in range(self.sd.int(*NUM_LIKES)):
-            user=self.sd.db_object_from_queryset(User.objects.all())
+            user = self.sd.db_object_from_queryset(User.objects.all())
             add_like(obj, user)
 
     def create_watchers(self, obj, notify_level=None):

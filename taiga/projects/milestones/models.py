@@ -147,7 +147,7 @@ class Milestone(WatchedModelMixin, models.Model):
 
             # At this point self._total_closed_points_by_date keeps a dict where the
             # finished date of the task is the key and the value is the increment of points
-            # We are transforming this dict of increments in an acumulation one including
+            # We are transforming this dict of increments in an accumulation one including
             # all the dates from the sprint
 
             acumulated_date_points = 0

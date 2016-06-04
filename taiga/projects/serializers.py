@@ -387,7 +387,6 @@ class LikedSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug']
 
 
-
 ######################################################
 ## Project Templates
 ######################################################
@@ -411,6 +410,7 @@ class ProjectTemplateSerializer(serializers.ModelSerializer):
 ######################################################
 ## Project order bulk serializers
 ######################################################
+
 
 class UpdateProjectOrderBulkSerializer(ProjectExistsValidator, serializers.Serializer):
     project_id = serializers.IntegerField()

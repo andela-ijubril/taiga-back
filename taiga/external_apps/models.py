@@ -23,6 +23,7 @@ from . import services
 
 import uuid
 
+
 def _generate_uuid():
     return str(uuid.uuid1())
 

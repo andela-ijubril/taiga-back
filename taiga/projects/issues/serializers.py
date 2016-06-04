@@ -70,14 +70,7 @@ class IssueListSerializer(IssueSerializer):
     class Meta:
         model = models.Issue
         read_only_fields = ('id', 'ref', 'created_date', 'modified_date')
-        exclude=("description", "description_html")
-
-
-class IssueListSerializer(IssueSerializer):
-    class Meta:
-        model = models.Issue
-        read_only_fields = ('id', 'ref', 'created_date', 'modified_date')
-        exclude=("description", "description_html")
+        exclude =("description", "description_html")
 
 
 class IssueNeighborsSerializer(NeighborsSerializerMixin, IssueSerializer):

@@ -188,7 +188,6 @@ class Command(BaseCommand):
             email = cls()
             email.send(test_email, context)
 
-
         # Transfer Emails
         context = {
             "project": Project.objects.all().order_by("?").first(),

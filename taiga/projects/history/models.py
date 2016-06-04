@@ -31,6 +31,7 @@ from taiga.base.utils.diff import make_diff as make_diff_from_dicts
 # previous diff has value for the attribute and we want to prevent their propagation
 IGNORE_DIFF_FIELDS = [ "watchers", "description_diff", "content_diff", "blocked_note_diff"]
 
+
 def _generate_uuid():
     return str(uuid.uuid1())
 

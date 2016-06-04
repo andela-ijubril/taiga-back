@@ -19,6 +19,7 @@ from django.core.management.base import BaseCommand
 
 from taiga.events.events import emit_event
 
+
 class Command(BaseCommand):
     help = 'Send a notification message to the current users'
 

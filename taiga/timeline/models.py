@@ -26,6 +26,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 
 from taiga.projects.models import Project
 
+
 class Timeline(models.Model):
     content_type = models.ForeignKey(ContentType, related_name="content_type_timelines")
     object_id = models.PositiveIntegerField()

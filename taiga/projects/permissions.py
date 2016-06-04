@@ -52,6 +52,7 @@ class IsMainOwner(PermissionComponent):
 
         return obj.owner == request.user
 
+
 class ProjectPermission(TaigaResourcePermission):
     retrieve_perms = HasProjectPerm('view_project')
     by_slug_perms = HasProjectPerm('view_project')

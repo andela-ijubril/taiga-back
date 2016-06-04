@@ -20,7 +20,6 @@ from django.apps import AppConfig
 from django.db.models import signals
 
 
-
 def connect_events_signals():
     from . import signal_handlers as handlers
     signals.post_save.connect(handlers.on_save_any_model, dispatch_uid="events_change")

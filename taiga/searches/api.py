@@ -29,6 +29,7 @@ from . import serializers
 
 from concurrent import futures
 
+
 class SearchViewSet(viewsets.ViewSet):
     def list(self, request, **kwargs):
         text = request.QUERY_PARAMS.get('text', "")

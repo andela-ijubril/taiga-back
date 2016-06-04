@@ -102,6 +102,7 @@ class TasksBulkSerializer(ProjectExistsValidator, SprintExistsValidator,
 
 ## Order bulk serializers
 
+
 class _TaskOrderBulkSerializer(TaskExistsValidator, serializers.Serializer):
     task_id = serializers.IntegerField()
     order = serializers.IntegerField()

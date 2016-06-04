@@ -21,6 +21,7 @@ from django.test.utils import override_settings
 from taiga.timeline.models import Timeline
 from taiga.projects.models import Project
 
+
 class Command(BaseCommand):
     help = 'Regenerate unnecessary new memberships entry lines'
 

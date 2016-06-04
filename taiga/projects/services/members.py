@@ -20,6 +20,7 @@ from django.utils.translation import ugettext as _
 
 from .. import models
 
+
 def get_members_from_bulk(bulk_data, **additional_fields):
     """Convert `bulk_data` into a list of members.
 
@@ -70,7 +71,7 @@ def can_user_leave_project(user, project):
     if not membership.is_admin:
          return True
 
-    #The user can't leave if is the real owner of the project
+    # The user can't leave if is the real owner of the project
     if project.owner == user:
         return False
 

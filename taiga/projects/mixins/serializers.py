@@ -19,6 +19,7 @@ from taiga.base.api import serializers
 
 from django.utils.translation import ugettext as _
 
+
 class ValidateDuplicatedNameInProjectMixin(serializers.ModelSerializer):
 
     def validate_name(self, attrs, source):

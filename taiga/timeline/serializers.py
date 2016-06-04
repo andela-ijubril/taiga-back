@@ -34,7 +34,7 @@ class TimelineSerializer(serializers.ModelSerializer):
         model = models.Timeline
 
     def get_data(self, obj):
-        #Updates the data user info saved if the user exists
+        # Updates the data user info saved if the user exists
         if hasattr(obj, "_prefetched_user"):
             user = obj._prefetched_user
         else:

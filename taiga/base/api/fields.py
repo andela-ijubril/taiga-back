@@ -79,7 +79,7 @@ import warnings
 
 def is_non_str_iterable(obj):
     if (isinstance(obj, str) or
-        (isinstance(obj, Promise) and obj._delegate_text)):
+            (isinstance(obj, Promise) and obj._delegate_text)):
         return False
     return hasattr(obj, "__iter__")
 
@@ -117,7 +117,7 @@ def get_component(obj, attr_name):
 
 def readable_datetime_formats(formats):
     format = ", ".join(formats).replace(ISO_8601,
-             "YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HHMM|-HHMM|Z]")
+                                        "YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HHMM|-HHMM|Z]")
     return humanize_strptime(format)
 
 
@@ -251,7 +251,7 @@ class Field(object):
         if is_protected_type(value):
             return value
         elif (is_non_str_iterable(value) and
-              not isinstance(value, (dict, six.string_types))):
+                  not isinstance(value, (dict, six.string_types))):
             return [self.to_native(item) for item in value]
         elif isinstance(value, dict):
             # Make sure we preserve field ordering, if it exists
@@ -305,10 +305,10 @@ class WritableField(Field):
             warnings.warn("The `blank` keyword argument is deprecated. "
                           "Use the `required` keyword argument instead.",
                           DeprecationWarning, stacklevel=2)
-            required = not(blank)
+            required = not (blank)
 
         super(WritableField, self).__init__(source=source, label=label,
-                help_text=help_text, i18n=i18n)
+                                            help_text=help_text, i18n=i18n)
 
         self.read_only = read_only
         self.write_only = write_only
@@ -316,7 +316,7 @@ class WritableField(Field):
         assert not (read_only and write_only), "Cannot set read_only=True and write_only=True"
 
         if required is None:
-            self.required = not(read_only)
+            self.required = not (read_only)
         else:
             assert not (read_only and required), "Cannot set required=True and read_only=True"
             self.required = required
@@ -421,6 +421,7 @@ class ModelField(WritableField):
     """
     A generic field that can be used against an arbitrary model field.
     """
+
     def __init__(self, *args, **kwargs):
         try:
             self.model_field = kwargs.pop("model_field")
@@ -961,7 +962,8 @@ class DecimalField(WritableField):
             raise ValidationError(self.error_messages["max_digits"] % self.max_digits)
         if self.decimal_places is not None and decimals > self.decimal_places:
             raise ValidationError(self.error_messages["max_decimal_places"] % self.decimal_places)
-        if self.max_digits is not None and self.decimal_places is not None and whole_digits > (self.max_digits - self.decimal_places):
+        if self.max_digits is not None and self.decimal_places is not None and whole_digits > (
+                    self.max_digits - self.decimal_places):
             raise ValidationError(self.error_messages["max_whole_digits"] % (self.max_digits - self.decimal_places))
         return value
 

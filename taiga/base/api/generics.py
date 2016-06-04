@@ -108,7 +108,6 @@ class GenericAPIView(pagination.PaginationMixin,
         return serializer_class(instance, data=data, files=files,
                                 many=many, partial=partial, context=context)
 
-
     def filter_queryset(self, queryset, filter_backends=None):
         """
         Given a queryset, filter it with whichever filter backend is in use.
@@ -118,7 +117,7 @@ class GenericAPIView(pagination.PaginationMixin,
         method if you want to apply the configured filtering backend to the
         default queryset.
         """
-        #NOTE TAIGA: Added filter_backends to overwrite the default behavior.
+        # NOTE TAIGA: Added filter_backends to overwrite the default behavior.
 
         backends = filter_backends or self.get_filter_backends()
         for backend in backends:
