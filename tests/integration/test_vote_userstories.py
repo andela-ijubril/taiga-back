@@ -61,6 +61,7 @@ def test_list_user_story_voters(client):
     assert response.status_code == 200
     assert response.data[0]['id'] == user.id
 
+
 def test_get_userstory_voter(client):
     user = f.UserFactory.create()
     user_story = f.create_userstory(owner=user)

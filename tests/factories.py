@@ -29,7 +29,6 @@ import factory
 from taiga.permissions.permissions import MEMBERS_PERMISSIONS
 
 
-
 class Factory(factory.DjangoModelFactory):
     class Meta:
         strategy = factory.CREATE_STRATEGY
@@ -497,6 +496,7 @@ class ApplicationFactory(Factory):
 
     key = "testingkey"
 
+
 class ApplicationTokenFactory(Factory):
     class Meta:
         model = "external_apps.ApplicationToken"
@@ -505,8 +505,9 @@ class ApplicationTokenFactory(Factory):
     application = factory.SubFactory("tests.factories.ApplicationFactory")
     user = factory.SubFactory("tests.factories.UserFactory")
 
+
 def create_issue(**kwargs):
-    "Create an issue and along with its dependencies."
+    """Create an issue and along with its dependencies."""
     owner = kwargs.pop("owner", None)
     if owner is None:
         owner = UserFactory.create()
@@ -530,7 +531,7 @@ def create_issue(**kwargs):
 
 
 def create_task(**kwargs):
-    "Create a task and along with its dependencies."
+    """Create a task and along with its dependencies."""
     owner = kwargs.pop("owner", None)
     if not owner:
         owner = UserFactory.create()
@@ -552,7 +553,7 @@ def create_task(**kwargs):
 
 
 def create_membership(**kwargs):
-    "Create a membership along with its dependencies"
+    """Create a membership along with its dependencies"""
     project = kwargs.pop("project", ProjectFactory())
     project.points.add(PointsFactory.create(project=project, value=None))
 
@@ -568,7 +569,7 @@ def create_membership(**kwargs):
 
 
 def create_invitation(**kwargs):
-    "Create an invitation along with its dependencies"
+    """Create an invitation along with its dependencies"""
     project = kwargs.pop("project", ProjectFactory())
     project.points.add(PointsFactory.create(project=project, value=None))
 
@@ -585,7 +586,7 @@ def create_invitation(**kwargs):
 
 
 def create_userstory(**kwargs):
-    "Create an user story along with its dependencies"
+    """Create an user story along with its dependencies"""
 
     owner = kwargs.pop("owner", None)
     if not owner:
@@ -606,7 +607,7 @@ def create_userstory(**kwargs):
 
 
 def create_project(**kwargs):
-    "Create a project along with its dependencies"
+    """Create a project along with its dependencies"""
     defaults = {}
     defaults.update(kwargs)
 
@@ -626,7 +627,7 @@ def create_project(**kwargs):
 
 
 def create_user(**kwargs):
-    "Create an user along with her dependencies"
+    """Create an user along with her dependencies"""
     ProjectTemplateFactory.create(slug=settings.DEFAULT_PROJECT_TEMPLATE)
     RoleFactory.create()
     return UserFactory.create(**kwargs)

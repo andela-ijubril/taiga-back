@@ -61,6 +61,7 @@ def test_list_issue_voters(client):
     assert response.status_code == 200
     assert response.data[0]['id'] == user.id
 
+
 def test_get_issue_voter(client):
     user = f.UserFactory.create()
     issue = f.create_issue(owner=user)
@@ -73,6 +74,7 @@ def test_get_issue_voter(client):
 
     assert response.status_code == 200
     assert response.data['id'] == vote.user.id
+
 
 def test_get_issue_votes(client):
     user = f.UserFactory.create()

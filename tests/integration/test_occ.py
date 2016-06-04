@@ -336,7 +336,6 @@ def test_valid_concurrent_save_for_task_different_fields(client):
         assert response.status_code == 200
 
 
-
 def test_invalid_save_without_version_parameter(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)

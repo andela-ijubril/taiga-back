@@ -55,6 +55,7 @@ def test_render_and_extract_mentions():
     (_, extracted) = render_and_extract(dummy_project, "**@user1**")
     assert extracted['mentions'] == [user]
 
+
 def test_render_and_extract_mentions_with_capitalized_username():
     user = factories.UserFactory(username="User1", full_name="test")
     (_, extracted) = render_and_extract(dummy_project, "**@User1**")

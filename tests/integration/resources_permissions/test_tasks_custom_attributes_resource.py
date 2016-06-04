@@ -270,7 +270,6 @@ def test_task_custom_attribute_delete(client, data):
     assert results == [401, 403, 403, 403, 451]
 
 
-
 def test_task_custom_attribute_list(client, data):
     url = reverse('task-custom-attributes-list')
 

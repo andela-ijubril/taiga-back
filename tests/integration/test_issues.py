@@ -210,6 +210,7 @@ def test_api_filter_by_text_6(client):
     assert response.status_code == 200
     assert number_of_issues == 1
 
+
 def test_api_filters_data(client):
     project = f.ProjectFactory.create()
     user1 = f.UserFactory.create(is_superuser=True)

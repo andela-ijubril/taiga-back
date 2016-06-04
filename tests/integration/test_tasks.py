@@ -169,7 +169,7 @@ def test_custom_fields_csv_generation():
     attr = f.TaskCustomAttributeFactory.create(project=project, name="attr1", description="desc")
     task = f.TaskFactory.create(project=project)
     attr_values = task.custom_attributes_values
-    attr_values.attributes_values = {str(attr.id):"val1"}
+    attr_values.attributes_values = {str(attr.id): "val1"}
     attr_values.save()
     queryset = project.tasks.all()
     data = services.tasks_to_csv(project, queryset)

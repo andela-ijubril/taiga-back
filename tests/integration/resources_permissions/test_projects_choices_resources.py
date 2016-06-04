@@ -547,7 +547,6 @@ def test_user_story_status_delete(client, data):
     assert results == [401, 403, 403, 403, 451]
 
 
-
 def test_user_story_status_list(client, data):
     url = reverse('userstory-statuses-list')
 
@@ -730,7 +729,6 @@ def test_task_status_delete(client, data):
     assert results == [401, 403, 403, 403, 204]
     results = helper_test_http_method(client, 'delete', blocked_url, None, users)
     assert results == [401, 403, 403, 403, 451]
-
 
 
 def test_task_status_list(client, data):
@@ -1259,6 +1257,7 @@ def test_priority_update(client, data):
     priority_data = json.dumps(priority_data)
     results = helper_test_http_method(client, 'put', blocked_url, priority_data, users)
     assert results == [401, 403, 403, 403, 451]
+
 
 def test_priority_delete(client, data):
     public_url = reverse('priorities-detail', kwargs={"pk": data.public_priority.pk})
@@ -1803,6 +1802,7 @@ def test_membership_action_bulk_create(client, data):
     bulk_data = json.dumps(bulk_data)
     results = helper_test_http_method(client, 'post', url, bulk_data, users)
     assert results == [401, 403, 403, 403, 451]
+
 
 def test_membership_action_resend_invitation(client, data):
     public_invitation = f.InvitationFactory(project=data.public_project, role__project=data.public_project)

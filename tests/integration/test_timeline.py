@@ -485,6 +485,7 @@ def test_user_data_for_unactived_users():
     serialized_obj.data["data"]["user"]["is_profile_visible"] = False
     serialized_obj.data["data"]["user"]["username"] = "deleted-user"
 
+
 def test_timeline_error_use_member_ids_instead_of_memberships_ids():
     user_story = factories.UserStoryFactory.create(subject="test error use member ids instead of "
                                                            "memberships ids")

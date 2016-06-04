@@ -30,6 +30,7 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 from taiga.base.utils import json
 
+
 def test_webhooks_when_create_wiki_page(settings):
     settings.WEBHOOKS_ENABLED = True
     project = f.ProjectFactory()

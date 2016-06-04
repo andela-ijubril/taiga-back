@@ -77,7 +77,6 @@ def test_api_create_bulk_members_without_enough_memberships_private_project_slot
     assert "reached your current limit of memberships for private" in response.data["_error_message"]
 
 
-
 def test_api_create_bulk_members_for_admin_without_enough_memberships_private_project_slots_one_project(client):
     owner = f.UserFactory.create(max_memberships_private_projects=3)
     user = f.UserFactory.create()
@@ -101,7 +100,6 @@ def test_api_create_bulk_members_for_admin_without_enough_memberships_private_pr
 
     assert response.status_code == 400
     assert "reached your current limit of memberships for private" in response.data["_error_message"]
-
 
 
 def test_api_create_bulk_members_with_enough_memberships_private_project_slots_multiple_projects(client):
@@ -373,6 +371,7 @@ def test_api_edit_membership(client):
     response = client.json.patch(url, json.dumps(data))
 
     assert response.status_code == 200
+
 
 def test_api_change_owner_membership_to_no_admin_return_error(client):
     project = f.ProjectFactory()

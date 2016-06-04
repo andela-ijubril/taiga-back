@@ -37,7 +37,6 @@ from ..utils import DUMMY_BMP_DATA
 pytestmark = pytest.mark.django_db
 
 
-
 #######################################################
 ## test api/v1/importer
 #######################################################
@@ -270,6 +269,7 @@ def test_invalid_project_import_without_roles(client):
     assert len(response.data) == 2
     assert Project.objects.filter(slug="imported-project").count() == 0
 
+
 def test_invalid_project_import_with_extra_data(client):
     user = f.UserFactory.create()
     client.login(user)
@@ -361,7 +361,7 @@ def test_invalid_project_import_with_custom_attributes(client):
 
 
 #######################################################
-## tes api/v1/importer/milestone
+## test api/v1/importer/milestone
 #######################################################
 
 def test_invalid_milestone_import(client):
@@ -396,6 +396,7 @@ def test_valid_milestone_import(client):
     assert response.status_code == 201
     assert response.data["watchers"] == [user_watching.email]
 
+
 def test_milestone_import_duplicated_milestone(client):
     user = f.UserFactory.create()
     project = f.ProjectFactory.create(owner=user)
@@ -413,7 +414,6 @@ def test_milestone_import_duplicated_milestone(client):
     response = client.json.post(url, json.dumps(data))
     assert response.status_code == 400
     assert response.data["milestones"][0]["name"][0] == "Name duplicated for the project"
-
 
 
 #######################################################
@@ -984,7 +984,7 @@ def test_invalid_wiki_page_import_with_extra_data(client):
 
 
 #######################################################
-## tes api/v1/importer/wiki-link
+## test api/v1/importer/wiki-link
 #######################################################
 
 def test_invalid_wiki_link_import(client):
@@ -1108,7 +1108,7 @@ def test_services_store_project_from_dict_with_no_members_public_project_slots_a
 
 
 ##################################################################
-## tes api/v1/importer/load-dummp
+## test api/v1/importer/load-dummp
 ##################################################################
 
 def test_invalid_dump_import(client):
@@ -1375,7 +1375,6 @@ def test_valid_dump_import_with_enough_membership_public_project_slots_multiple_
     assert response.status_code == 201
     assert "id" in response.data
     assert response.data["name"] == "Valid project"
-
 
 
 def test_valid_dump_import_with_the_limit_of_membership_whit_you_for_private_project(client, settings):

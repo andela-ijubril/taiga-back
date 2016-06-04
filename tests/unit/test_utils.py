@@ -116,6 +116,8 @@ TS_QUERY_TRANSFORMATIONS = [
     ('""', "'\"\"':*"),
     ('"""', "'\"\"':* & '\"':*"),
 ]
+
+
 def test_to_tsquery():
     for (input, expected) in TS_QUERY_TRANSFORMATIONS:
         expected = re.sub("([0-9])", r"'\1':*", expected)

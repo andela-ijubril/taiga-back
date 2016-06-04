@@ -72,7 +72,7 @@ def test_ok_empty_payload(client):
     url = reverse("gitlab-hook-list")
     url = "{}?project={}&key={}".format(url, project.id, "tpnIwJDz4e")
     data = {}
-    response = client.post(url,"null", content_type="application/json", REMOTE_ADDR="111.111.111.111")
+    response = client.post(url, "null", content_type="application/json", REMOTE_ADDR="111.111.111.111")
 
     assert response.status_code == 204
 
@@ -108,7 +108,7 @@ def test_ok_signature_invalid_network(client):
 
     url = reverse("gitlab-hook-list")
     url = "{}?project={}&key={}".format(url, project.id, "tpnIwJDz4e")
-    data = json.dumps({"push": {"changes": [{"new": {"target": { "message": "test message"}}}]}})
+    data = json.dumps({"push": {"changes": [{"new": {"target": {"message": "test message"}}}]}})
     response = client.post(url,
                            data,
                            content_type="application/json",

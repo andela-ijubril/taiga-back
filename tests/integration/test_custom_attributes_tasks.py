@@ -35,7 +35,6 @@ def test_task_custom_attribute_duplicate_name_error_on_create(client):
                                  project=custom_attr_1.project,
                                  is_admin=True)
 
-
     url = reverse("task-custom-attributes-list")
     data = {"name": custom_attr_1.name,
             "project": custom_attr_1.project.pk}
@@ -51,7 +50,6 @@ def test_task_custom_attribute_duplicate_name_error_on_update(client):
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
                                  is_admin=True)
-
 
     url = reverse("task-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
     data = {"name": custom_attr_1.name}
@@ -70,7 +68,6 @@ def test_task_custom_attribute_duplicate_name_error_on_move_between_projects(cli
     f.MembershipFactory(user=custom_attr_1.project.owner,
                         project=custom_attr_2.project,
                         is_admin=True)
-
 
     url = reverse("task-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
     data = {"project": custom_attr_1.project.pk}

@@ -34,7 +34,6 @@ def test_retrieve_existing_token_for_application(client):
     assert response.data.get("application").get("id") == token.application.id
 
 
-
 def test_retrieve_unexisting_token_for_application(client):
     user = f.UserFactory.create()
     url = reverse("applications-token", args=[-1])

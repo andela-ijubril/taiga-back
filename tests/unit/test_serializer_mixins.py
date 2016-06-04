@@ -13,6 +13,7 @@ import factory
 class AuxProjectModel(models.Model):
     pass
 
+
 class AuxModelWithNameAttribute(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False)
     project = models.ForeignKey(AuxProjectModel, null=False, blank=False)
@@ -21,7 +22,6 @@ class AuxModelWithNameAttribute(models.Model):
 class AuxSerializer(ValidateDuplicatedNameInProjectMixin):
     class Meta:
         model = AuxModelWithNameAttribute
-
 
 
 def test_duplicated_name_validation():
@@ -40,6 +40,6 @@ def test_duplicated_name_validation():
     assert not serializer.is_valid()
 
     # Update name to existing one
-    serializer = AuxSerializer(data={"id": instance_2.id, "name": "1","project": project.id})
+    serializer = AuxSerializer(data={"id": instance_2.id, "name": "1", "project": project.id})
 
     assert not serializer.is_valid()

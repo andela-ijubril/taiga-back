@@ -119,7 +119,7 @@ def test_auth_uppercase_ignore(client, settings):
                      "type": "public"}
     response = client.post(reverse("auth-register"), register_form)
 
-    #Only exists one user with the same lowercase version of username/password
+    # Only exists one user with the same lowercase version of username/password
     login_form = {"type": "normal",
                   "username": "Username",
                   "password": "password"}
@@ -134,7 +134,7 @@ def test_auth_uppercase_ignore(client, settings):
     response = client.post(reverse("auth-list"), login_form)
     assert response.status_code == 200
 
-    #Now we have two users with the same lowercase version of username/password
+    # Now we have two users with the same lowercase version of username/password
     # 1.- The capitalized version works
     register_form = {"username": "username",
                      "password": "password",

@@ -36,7 +36,6 @@ def test_issue_custom_attribute_duplicate_name_error_on_create(client):
                                  project=custom_attr_1.project,
                                  is_admin=True)
 
-
     url = reverse("issue-custom-attributes-list")
     data = {"name": custom_attr_1.name,
             "project": custom_attr_1.project.pk}
@@ -52,7 +51,6 @@ def test_issue_custom_attribute_duplicate_name_error_on_update(client):
     member = f.MembershipFactory(user=custom_attr_1.project.owner,
                                  project=custom_attr_1.project,
                                  is_admin=True)
-
 
     url = reverse("issue-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
     data = {"name": custom_attr_1.name}
@@ -71,7 +69,6 @@ def test_issue_custom_attribute_duplicate_name_error_on_move_between_projects(cl
     f.MembershipFactory(user=custom_attr_1.project.owner,
                         project=custom_attr_2.project,
                         is_admin=True)
-
 
     url = reverse("issue-custom-attributes-detail", kwargs={"pk": custom_attr_2.pk})
     data = {"project": custom_attr_1.project.pk}
@@ -112,7 +109,6 @@ def test_issue_custom_attributes_values_update(client):
         "version": custom_attrs_val.version
     }
 
-
     assert issue.custom_attributes_values.attributes_values == {}
     client.login(member.user)
     response = client.json.patch(url, json.dumps(data))
@@ -146,6 +142,7 @@ def test_issue_custom_attributes_values_update_with_error_invalid_key(client):
     client.login(member.user)
     response = client.json.patch(url, json.dumps(data))
     assert response.status_code == 400
+
 
 def test_issue_custom_attributes_values_delete_issue(client):
     issue = f.IssueFactory()

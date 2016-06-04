@@ -342,28 +342,28 @@ def test_issue_custom_attribute_action_bulk_update_order(client, data):
     ]
 
     post_data = json.dumps({
-        "bulk_issue_custom_attributes": [(1,2)],
+        "bulk_issue_custom_attributes": [(1, 2)],
         "project": data.public_project.pk
     })
     results = helper_test_http_method(client, 'post', url, post_data, users)
     assert results == [401, 403, 403, 403, 204]
 
     post_data = json.dumps({
-        "bulk_issue_custom_attributes": [(1,2)],
+        "bulk_issue_custom_attributes": [(1, 2)],
         "project": data.private_project1.pk
     })
     results = helper_test_http_method(client, 'post', url, post_data, users)
     assert results == [401, 403, 403, 403, 204]
 
     post_data = json.dumps({
-        "bulk_issue_custom_attributes": [(1,2)],
+        "bulk_issue_custom_attributes": [(1, 2)],
         "project": data.private_project2.pk
     })
     results = helper_test_http_method(client, 'post', url, post_data, users)
     assert results == [401, 403, 403, 403, 204]
 
     post_data = json.dumps({
-        "bulk_issue_custom_attributes": [(1,2)],
+        "bulk_issue_custom_attributes": [(1, 2)],
         "project": data.blocked_project.pk
     })
     results = helper_test_http_method(client, 'post', url, post_data, users)

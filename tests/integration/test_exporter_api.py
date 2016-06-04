@@ -64,7 +64,7 @@ def test_valid_project_export_with_celery_enabled(client, settings):
 
     url = reverse("exporter-detail", args=[project.pk])
 
-    #delete_project_dump task should have been launched
+    # delete_project_dump task should have been launched
     with mock.patch('taiga.export_import.tasks.delete_project_dump') as delete_project_dump_mock:
         response = client.get(url, content_type="application/json")
         assert response.status_code == 202

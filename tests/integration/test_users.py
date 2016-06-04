@@ -120,6 +120,7 @@ def test_validate_requested_email_change_for_anonymous_user(client):
     assert user.new_email is None
     assert user.email == "new@email.com"
 
+
 def test_validate_requested_email_change_without_token(client):
     user = f.UserFactory.create(email_token="change_email_token", new_email="new@email.com")
     url = reverse('users-change-email')
@@ -717,7 +718,7 @@ def test_get_watched_list_with_liked_and_voted_objects(client):
     response = client.get(url, content_type="application/json")
 
     for element_data in response.data:
-        #assert element_data["is_watcher"] == True
+        # assert element_data["is_watcher"] == True
         if element_data["type"] == "project":
             assert element_data["is_fan"] == True
         else:
@@ -790,15 +791,15 @@ def test_get_watched_list_permissions():
     issue = f.IssueFactory(project=project, subject="Testing issue")
     issue.add_watcher(fav_user)
 
-    #If the project is private a viewer user without any permission shouldn' see
+    # If the project is private a viewer user without any permission shouldn' see
     # any vote
     assert len(get_watched_list(fav_user, viewer_unpriviliged_user)) == 0
 
-    #If the project is private but the viewer user has permissions the votes should
+    # If the project is private but the viewer user has permissions the votes should
     # be accesible
     assert len(get_watched_list(fav_user, viewer_priviliged_user)) == 4
 
-    #If the project is private but has the required anon permissions the votes should
+    # If the project is private but has the required anon permissions the votes should
     # be accesible by any user too
     project.anon_permissions = ["view_project", "view_us", "view_tasks", "view_issues"]
     project.save()
@@ -816,15 +817,15 @@ def test_get_liked_list_permissions():
     content_type = ContentType.objects.get_for_model(project)
     f.LikeFactory(content_type=content_type, object_id=project.id, user=fan_user)
 
-    #If the project is private a viewer user without any permission shouldn' see
+    # If the project is private a viewer user without any permission shouldn' see
     # any vote
     assert len(get_liked_list(fan_user, viewer_unpriviliged_user)) == 0
 
-    #If the project is private but the viewer user has permissions the votes should
+    # If the project is private but the viewer user has permissions the votes should
     # be accesible
     assert len(get_liked_list(fan_user, viewer_priviliged_user)) == 1
 
-    #If the project is private but has the required anon permissions the votes should
+    # If the project is private but has the required anon permissions the votes should
     # be accesible by any user too
     project.anon_permissions = ["view_project", "view_us", "view_tasks", "view_issues"]
     project.save()
@@ -855,15 +856,15 @@ def test_get_voted_list_permissions():
     f.VoteFactory(content_type=content_type, object_id=issue.id, user=fav_user)
     f.VotesFactory(content_type=content_type, object_id=issue.id, count=1)
 
-    #If the project is private a viewer user without any permission shouldn' see
+    # If the project is private a viewer user without any permission shouldn' see
     # any vote
     assert len(get_voted_list(fav_user, viewer_unpriviliged_user)) == 0
 
-    #If the project is private but the viewer user has permissions the votes should
+    # If the project is private but the viewer user has permissions the votes should
     # be accesible
     assert len(get_voted_list(fav_user, viewer_priviliged_user)) == 3
 
-    #If the project is private but has the required anon permissions the votes should
+    # If the project is private but has the required anon permissions the votes should
     # be accesible by any user too
     project.anon_permissions = ["view_project", "view_us", "view_tasks", "view_issues"]
     project.save()

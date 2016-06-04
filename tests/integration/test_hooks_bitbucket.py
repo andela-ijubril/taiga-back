@@ -231,7 +231,7 @@ def test_push_event_issue_processing(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #%s   ok   bye!" % (issue.ref, new_status.slug) }
+                        {"message": "test message   test   TG-%s    #%s   ok   bye!" % (issue.ref, new_status.slug) }
                     ]
                 }
             ]
@@ -256,7 +256,7 @@ def test_push_event_task_processing(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #%s   ok   bye!" % (task.ref, new_status.slug) }
+                        {"message": "test message   test   TG-%s    #%s   ok   bye!" % (task.ref, new_status.slug) }
                     ]
                 }
             ]
@@ -281,7 +281,7 @@ def test_push_event_user_story_processing(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #%s   ok   bye!" % (user_story.ref, new_status.slug) }
+                        {"message": "test message   test   TG-%s    #%s   ok   bye!" % (user_story.ref, new_status.slug) }
                     ]
                 }
             ]
@@ -307,7 +307,7 @@ def test_push_event_multiple_actions(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #%s   ok  test   TG-%s    #%s   ok  bye!" % (issue1.ref, new_status.slug, issue2.ref, new_status.slug) }
+                        {"message": "test message   test   TG-%s    #%s   ok  test   TG-%s    #%s   ok  bye!" % (issue1.ref, new_status.slug, issue2.ref, new_status.slug) }
                     ]
                 }
             ]
@@ -334,7 +334,7 @@ def test_push_event_processing_case_insensitive(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #%s   ok   bye!" % (task.ref, new_status.slug) }
+                        {"message": "test message   test   TG-%s    #%s   ok   bye!" % (task.ref, new_status.slug) }
                     ]
                 }
             ]
@@ -355,7 +355,7 @@ def test_push_event_task_bad_processing_non_existing_ref(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-6666666    #%s   ok   bye!" % (issue_status.slug) }
+                        {"message": "test message   test   TG-6666666    #%s   ok   bye!" % (issue_status.slug) }
                     ]
                 }
             ]
@@ -378,7 +378,7 @@ def test_push_event_us_bad_processing_non_existing_status(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #non-existing-slug   ok   bye!" % (user_story.ref) }
+                        {"message": "test message   test   TG-%s    #non-existing-slug   ok   bye!" % (user_story.ref) }
                     ]
                 }
             ]
@@ -402,7 +402,7 @@ def test_push_event_bad_processing_non_existing_status(client):
             "changes": [
                 {
                     "commits": [
-                        { "message": "test message   test   TG-%s    #non-existing-slug   ok   bye!" % (issue.ref) }
+                        {"message": "test message   test   TG-%s    #non-existing-slug   ok   bye!" % (issue.ref) }
                     ]
                 }
             ]

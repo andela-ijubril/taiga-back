@@ -201,6 +201,7 @@ def test_user_story_update(client, data):
             results = helper_test_http_method(client, 'put', blocked_url, user_story_data, users)
             assert results == [401, 403, 403, 451, 451]
 
+
 def test_user_story_update_with_project_change(client):
     user1 = f.UserFactory.create()
     user2 = f.UserFactory.create()

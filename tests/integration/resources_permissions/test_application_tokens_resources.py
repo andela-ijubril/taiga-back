@@ -68,7 +68,7 @@ def test_application_tokens_retrieve(client, data):
 
 
 def test_application_tokens_authorize(client, data):
-    url=reverse('application-tokens-authorize')
+    url = reverse('application-tokens-authorize')
 
     users = [
         None,
@@ -86,7 +86,7 @@ def test_application_tokens_authorize(client, data):
 
 
 def test_application_tokens_validate(client, data):
-    url=reverse('application-tokens-validate')
+    url = reverse('application-tokens-validate')
 
     users = [
         None,

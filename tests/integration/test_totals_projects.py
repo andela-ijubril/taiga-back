@@ -29,6 +29,7 @@ from django.core.urlresolvers import reverse
 
 pytestmark = pytest.mark.django_db
 
+
 def test_project_totals_updated_on_activity(client):
     project = f.create_project()
     totals_updated_datetime = project.totals_updated_datetime
@@ -107,7 +108,6 @@ def test_project_totals_updated_on_activity(client):
     assert project.total_activity_last_month == 2
     assert project.total_activity_last_year == 3
     assert project.totals_updated_datetime > totals_updated_datetime
-
 
 
 def test_project_totals_updated_on_like(client):

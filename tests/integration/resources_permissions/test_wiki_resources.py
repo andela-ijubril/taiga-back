@@ -270,6 +270,7 @@ def test_wiki_page_create(client, data):
     results = helper_test_http_method(client, 'post', url, create_data, users, lambda: WikiPage.objects.all().delete())
     assert results == [401, 403, 403, 451, 451]
 
+
 def test_wiki_page_patch(client, data):
     public_url = reverse('wiki-detail', kwargs={"pk": data.public_wiki_page.pk})
     private_url1 = reverse('wiki-detail', kwargs={"pk": data.private_wiki_page1.pk})
@@ -380,6 +381,7 @@ def test_wiki_link_update(client, data):
             wiki_link_data = json.dumps(wiki_link_data)
             results = helper_test_http_method(client, 'put', blocked_url, wiki_link_data, users)
             assert results == [401, 403, 403, 451, 451]
+
 
 def test_wiki_link_delete(client, data):
     public_url = reverse('wiki-links-detail', kwargs={"pk": data.public_wiki_link.pk})
