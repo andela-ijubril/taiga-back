@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -14,9 +15,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from contextlib import suppress
-
 
 from django.apps import apps
 from django.db import transaction
@@ -37,6 +35,7 @@ from taiga.projects.notifications.mixins import WatchedResourceMixin, WatchersVi
 from taiga.projects.history.mixins import HistoryResourceMixin
 from taiga.projects.occ import OCCResourceMixin
 from taiga.projects.models import Project, UserStoryStatus
+from taiga.projects.milestones.models import Milestone
 from taiga.projects.history.services import take_snapshot
 from taiga.projects.votes.mixins.viewsets import VotedResourceMixin, VotersViewSetMixin
 
@@ -86,6 +85,86 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
 
         return serializers.UserStorySerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = qs.prefetch_related("role_points",
+                                 "role_points__points",
+                                 "role_points__role")
+        qs = qs.select_related("milestone",
+                               "project",
+                               "status",
+                               "owner",
+                               "assigned_to",
+                               "generated_from_issue")
+        qs = self.attach_votes_attrs_to_queryset(qs)
+        return self.attach_watchers_attrs_to_queryset(qs)
+
+    def pre_conditions_on_save(self, obj):
+        super().pre_conditions_on_save(obj)
+
+        if obj.milestone and obj.milestone.project != obj.project:
+            raise exc.PermissionDenied(_("You don't have permissions to set this sprint "
+                                         "to this user story."))
+
+        if obj.status and obj.status.project != obj.project:
+            raise exc.PermissionDenied(_("You don't have permissions to set this status "
+                                         "to this user story."))
+
+    def pre_save(self, obj):
+        # This is very ugly hack, but having
+        # restframework is the only way to do it.
+        # NOTE: code moved as is from serializer
+        # to api because is not serializer logic.
+        related_data = getattr(obj, "_related_data", {})
+        self._role_points = related_data.pop("role_points", None)
+
+        if not obj.id:
+            obj.owner = self.request.user
+
+        super().pre_save(obj)
+
+    def post_save(self, obj, created=False):
+        # Code related to the hack of pre_save method. Rather, this is the continuation of it.
+        if self._role_points:
+            Points = apps.get_model("projects", "Points")
+            RolePoints = apps.get_model("userstories", "RolePoints")
+
+            for role_id, points_id in self._role_points.items():
+                try:
+                    role_points = RolePoints.objects.get(role__id=role_id, user_story_id=obj.pk,
+                                                         role__computable=True)
+                except (ValueError, RolePoints.DoesNotExist):
+                    raise exc.BadRequest({"points": _("Invalid role id '{role_id}'").format(
+                                                                            role_id=role_id)})
+
+                try:
+                    role_points.points = Points.objects.get(id=points_id, project_id=obj.project_id)
+                except (ValueError, Points.DoesNotExist):
+                    raise exc.BadRequest({"points": _("Invalid points id '{points_id}'").format(
+                                                                             points_id=points_id)})
+
+                role_points.save()
+
+        super().post_save(obj, created)
+
+    @transaction.atomic
+    def create(self, *args, **kwargs):
+        response = super().create(*args, **kwargs)
+
+        # Added comment to the origin (issue)
+        if response.status_code == status.HTTP_201_CREATED and self.object.generated_from_issue:
+            self.object.generated_from_issue.save()
+
+            comment = _("Generating the user story #{ref} - {subject}")
+            comment = comment.format(ref=self.object.ref, subject=self.object.subject)
+            history = take_snapshot(self.object.generated_from_issue,
+                                    comment=comment,
+                                    user=self.request.user)
+
+            self.send_notifications(self.object.generated_from_issue, history)
+
+        return response
+
     def update(self, request, *args, **kwargs):
         self.object = self.get_object_or_none()
         project_id = request.DATA.get('project', None)
@@ -111,61 +190,6 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
                 return response.BadRequest(_("The project doesn't exist"))
 
         return super().update(request, *args, **kwargs)
-
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        qs = qs.prefetch_related("role_points",
-                                 "role_points__points",
-                                 "role_points__role")
-        qs = qs.select_related("milestone",
-                               "project",
-                               "status",
-                               "owner",
-                               "assigned_to",
-                               "generated_from_issue")
-        qs = self.attach_votes_attrs_to_queryset(qs)
-        return self.attach_watchers_attrs_to_queryset(qs)
-
-    def pre_save(self, obj):
-        # This is very ugly hack, but having
-        # restframework is the only way to do it.
-        # NOTE: code moved as is from serializer
-        # to api because is not serializer logic.
-        related_data = getattr(obj, "_related_data", {})
-        self._role_points = related_data.pop("role_points", None)
-
-        if not obj.id:
-            obj.owner = self.request.user
-
-        super().pre_save(obj)
-
-    def post_save(self, obj, created=False):
-        # Code related to the hack of pre_save method. Rather,
-        # this is the continuation of it.
-
-        Points = apps.get_model("projects", "Points")
-        RolePoints = apps.get_model("userstories", "RolePoints")
-
-        if self._role_points:
-            with suppress(ObjectDoesNotExist):
-                for role_id, points_id in self._role_points.items():
-                    role_points = RolePoints.objects.get(role__id=role_id, user_story_id=obj.pk)
-                    role_points.points = Points.objects.get(id=points_id, project_id=obj.project_id)
-                    role_points.save()
-
-        super().post_save(obj, created)
-
-    def pre_conditions_on_save(self, obj):
-        super().pre_conditions_on_save(obj)
-
-        if obj.milestone and obj.milestone.project != obj.project:
-            raise exc.PermissionDenied(_("You don't have permissions to set this sprint "
-                                         "to this user story."))
-
-        if obj.status and obj.status.project != obj.project:
-            raise exc.PermissionDenied(_("You don't have permissions to set this status "
-                                         "to this user story."))
 
     @list_route(methods=["GET"])
     def filters_data(self, request, *args, **kwargs):
@@ -225,6 +249,23 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
             return response.Ok(user_stories_serialized.data)
         return response.BadRequest(serializer.errors)
 
+    @list_route(methods=["POST"])
+    def bulk_update_milestone(self, request, **kwargs):
+        serializer = serializers.UpdateMilestoneBulkSerializer(data=request.DATA)
+        if not serializer.is_valid():
+            return response.BadRequest(serializer.errors)
+
+        data = serializer.data
+        project = get_object_or_404(Project, pk=data["project_id"])
+        milestone = get_object_or_404(Milestone, pk=data["milestone_id"])
+
+        self.check_permissions(request, "bulk_update_milestone", project)
+
+        services.update_userstories_milestone_in_bulk(data["bulk_stories"], milestone)
+        services.snapshot_userstories_in_bulk(data["bulk_stories"], request.user)
+
+        return response.NoContent()
+
     def _bulk_update_order(self, order_field, request, **kwargs):
         serializer = serializers.UpdateUserStoriesOrderBulkSerializer(data=request.DATA)
         if not serializer.is_valid():
@@ -256,23 +297,6 @@ class UserStoryViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixi
     def bulk_update_kanban_order(self, request, **kwargs):
         return self._bulk_update_order("kanban_order", request, **kwargs)
 
-    @transaction.atomic
-    def create(self, *args, **kwargs):
-        response = super().create(*args, **kwargs)
-
-        # Added comment to the origin (issue)
-        if response.status_code == status.HTTP_201_CREATED and self.object.generated_from_issue:
-            self.object.generated_from_issue.save()
-
-            comment = _("Generating the user story #{ref} - {subject}")
-            comment = comment.format(ref=self.object.ref, subject=self.object.subject)
-            history = take_snapshot(self.object.generated_from_issue,
-                                    comment=comment,
-                                    user=self.request.user)
-
-            self.send_notifications(self.object.generated_from_issue, history)
-
-        return response
 
 class UserStoryVotersViewSet(VotersViewSetMixin, ModelListViewSet):
     permission_classes = (permissions.UserStoryVotersPermission,)

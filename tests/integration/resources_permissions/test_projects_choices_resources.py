@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 from django.core.urlresolvers import reverse
 
 from taiga.base.utils import json
 from taiga.projects import choices as project_choices
 from taiga.projects import serializers
 from taiga.users.serializers import RoleSerializer
-from taiga.permissions.permissions import MEMBERS_PERMISSIONS
+from taiga.permissions.choices import MEMBERS_PERMISSIONS
 
 from tests import factories as f
 from tests.utils import helper_test_http_method

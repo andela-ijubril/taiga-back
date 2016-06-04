@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -26,7 +27,7 @@ from .utils import DUMMY_BMP_DATA
 
 import factory
 
-from taiga.permissions.permissions import MEMBERS_PERMISSIONS
+from taiga.permissions.choices import MEMBERS_PERMISSIONS
 
 
 

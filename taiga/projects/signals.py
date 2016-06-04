@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -66,7 +67,6 @@ def project_post_save(sender, instance, created, **kwargs):
 
     if instance._importing:
         return
-
 
     template = getattr(instance, "creation_template", None)
     if template is None:

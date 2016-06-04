@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -19,6 +20,8 @@ from taiga.base.api.permissions import (TaigaResourcePermission, HasProjectPerm,
                                         IsAuthenticated, IsProjectAdmin, AllowAny,
                                         IsSuperUser)
 
+from taiga.permissions.permissions import CommentAndOrUpdatePerm
+
 
 class WikiPagePermission(TaigaResourcePermission):
     enought_perms = IsProjectAdmin() | IsSuperUser()
@@ -26,8 +29,8 @@ class WikiPagePermission(TaigaResourcePermission):
     retrieve_perms = HasProjectPerm('view_wiki_pages')
     by_slug_perms = HasProjectPerm('view_wiki_pages')
     create_perms = HasProjectPerm('add_wiki_page')
-    update_perms = HasProjectPerm('modify_wiki_page')
-    partial_update_perms = HasProjectPerm('modify_wiki_page')
+    update_perms = CommentAndOrUpdatePerm('modify_wiki_page', 'comment_wiki_page')
+    partial_update_perms = CommentAndOrUpdatePerm('modify_wiki_page', 'comment_wiki_page')
     destroy_perms = HasProjectPerm('delete_wiki_page')
     list_perms = AllowAny()
     render_perms = AllowAny()

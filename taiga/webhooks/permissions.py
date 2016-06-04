@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -18,7 +19,7 @@
 from taiga.base.api.permissions import (TaigaResourcePermission, IsProjectAdmin,
                                         AllowAny, PermissionComponent)
 
-from taiga.permissions.service import is_project_admin
+from taiga.permissions.services import is_project_admin
 
 
 class IsWebhookProjectAdmin(PermissionComponent):

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -24,7 +25,7 @@ import os
 
 
 class Command(BaseCommand):
-    help = "Export projects to json"
+    help = "Export projects to a json file"
 
     def add_arguments(self, parser):
         parser.add_argument("project_slugs",
@@ -56,7 +57,7 @@ class Command(BaseCommand):
                 raise CommandError("Project '{}' does not exist".format(project_slug))
 
             dst_file = os.path.join(dst_dir, "{}.json".format(project_slug))
-            with open(src_file, "w") as f:
+            with open(dst_file, "w") as f:
                 render_project(project, f)
 
-            print("-> Generate dump of project '{}' in '{}'".format(project.name, src_file))
+            print("-> Generate dump of project '{}' in '{}'".format(project.name, dst_file))

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -40,11 +41,10 @@ from taiga.base.utils.sequence import arithmetic_progression
 from taiga.base.utils.slug import slugify_uniquely
 from taiga.base.utils.slug import slugify_uniquely_for_queryset
 
-from taiga.permissions.permissions import ANON_PERMISSIONS, MEMBERS_PERMISSIONS
+from taiga.permissions.choices import ANON_PERMISSIONS, MEMBERS_PERMISSIONS
 
 from taiga.projects.notifications.choices import NotifyLevel
 from taiga.projects.notifications.services import (
-    get_notify_policy,
     set_notify_policy_level,
     set_notify_policy_level_to_ignore,
     create_notify_policy_if_not_exists)
@@ -158,7 +158,7 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
                                         default=timezone.now)
     modified_date = models.DateTimeField(null=False, blank=False,
                                          verbose_name=_("modified date"))
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=False, blank=False,
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                               related_name="owned_projects", verbose_name=_("owner"))
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="projects",
                                      through="Membership", verbose_name=_("members"),
@@ -345,6 +345,34 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
     def cached_user_stories(self):
         return list(self.user_stories.all())
 
+    @cached_property
+    def cached_notify_policies(self):
+        return {np.user.id: np for np in self.notify_policies.select_related("user", "project")}
+
+    def cached_notify_policy_for_user(self, user):
+        """
+        Get notification level for specified project and user.
+        """
+        policy = self.cached_notify_policies.get(user.id, None)
+        if policy is None:
+            model_cls = apps.get_model("notifications", "NotifyPolicy")
+            policy = model_cls.objects.create(
+                project=self,
+                user=user,
+                notify_level= NotifyLevel.involved)
+
+            del self.cached_notify_policies
+
+        return policy
+
+    @cached_property
+    def cached_memberships(self):
+        return {m.user.id: m for m in self.memberships.exclude(user__isnull=True)
+                                                      .select_related("user", "project", "role")}
+
+    def cached_memberships_for_user(self, user):
+        return self.cached_memberships.get(user.id, None)
+
     def get_roles(self):
         return self.roles.all()
 
@@ -426,7 +454,7 @@ class Project(ProjectDefaults, TaggedMixin, models.Model):
         set_notify_policy_level(notify_policy, notify_level)
 
     def remove_watcher(self, user):
-        notify_policy = get_notify_policy(self, user)
+        notify_policy = self.cached_notify_policy_for_user(user)
         set_notify_policy_level_to_ignore(notify_policy)
 
     def delete_related_content(self):
@@ -940,9 +968,11 @@ class ProjectTemplate(models.Model):
                                                                project=project)
 
         if self.priorities:
-            project.default_priority = Priority.objects.get(name=self.default_options["priority"], project=project)
+            project.default_priority = Priority.objects.get(name=self.default_options["priority"],
+                                                            project=project)
 
         if self.severities:
-            project.default_severity = Severity.objects.get(name=self.default_options["severity"], project=project)
+            project.default_severity = Severity.objects.get(name=self.default_options["severity"],
+                                                            project=project)
 
         return project

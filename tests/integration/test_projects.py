@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.files import File
@@ -7,8 +8,9 @@ from django.core import signing
 from taiga.base.utils import json
 from taiga.projects.services import stats as stats_services
 from taiga.projects.history.services import take_snapshot
-from taiga.permissions.permissions import ANON_PERMISSIONS
+from taiga.permissions.choices import ANON_PERMISSIONS
 from taiga.projects.models import Project
+from taiga.projects.choices import BLOCKED_BY_DELETING
 
 from .. import factories as f
 from ..utils import DUMMY_BMP_DATA
@@ -18,6 +20,8 @@ from easy_thumbnails.files import generate_all_aliases, get_thumbnailer
 
 import os.path
 import pytest
+
+from unittest import mock
 
 pytestmark = pytest.mark.django_db
 
@@ -1814,3 +1818,37 @@ def test_public_project_when_project_has_unlimited_members(client):
     project.owner.max_memberships_public_projects = None
 
     assert check_if_project_is_out_of_owner_limits(project) == False
+
+
+def test_delete_project_with_celery_enabled(client, settings):
+    settings.CELERY_ENABLED = True
+    user = f.UserFactory.create()
+    project = f.ProjectFactory.create(owner=user)
+    role = f.RoleFactory.create(project=project, permissions=["view_project"])
+    membership = f.MembershipFactory.create(project=project, user=user, role=role, is_admin=True)
+    url = reverse("projects-detail", args=(project.id,))
+    client.login(user)
+
+    #delete_project task should have been launched
+    with mock.patch('taiga.projects.services.delete_project') as delete_project_mock:
+        response = client.json.delete(url)
+        assert response.status_code == 204
+        project = Project.objects.get(id=project.id)
+        assert project.owner == None
+        assert project.memberships.count() == 0
+        assert project.blocked_code == BLOCKED_BY_DELETING
+        delete_project_mock.delay.assert_called_once_with(project.id)
+
+
+def test_delete_project_with_celery_disabled(client, settings):
+    settings.CELERY_ENABLED = False
+
+    user = f.UserFactory.create()
+    project = f.ProjectFactory.create(owner=user)
+    role = f.RoleFactory.create(project=project, permissions=["view_project"])
+    membership = f.MembershipFactory.create(project=project, user=user, role=role, is_admin=True)
+    url = reverse("projects-detail", args=(project.id,))
+    client.login(user)
+    response = client.json.delete(url)
+    assert response.status_code == 204
+    assert Project.objects.filter(id=project.id).count() == 0

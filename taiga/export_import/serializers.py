@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -160,6 +161,7 @@ class CommentField(serializers.WritableField):
 
 class ProjectRelatedField(serializers.RelatedField):
     read_only = False
+    null_values = (None, "")
 
     def __init__(self, slug_field, *args, **kwargs):
         self.slug_field = slug_field

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2014-2016 Andrey Antukh <niwi@niwi.nz>
 # Copyright (C) 2014-2016 Jesús Espino <jespinog@gmail.com>
 # Copyright (C) 2014-2016 David Barragán <bameda@dbarragan.com>
@@ -63,7 +64,6 @@ class MembershipsInline(admin.TabularInline):
 
     def project_owner(self, obj):
         if obj.project and obj.project.owner:
-            #return obj.project.owner.get_full_name()
             return "{} (@{})".format(obj.project.owner.get_full_name(), obj.project.owner.username)
         return None
     project_owner.short_description = _("owner")
